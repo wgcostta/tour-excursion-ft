@@ -1,143 +1,159 @@
-// components/SearchFilters.tsx
+// components/Pagination.tsx
 import React from 'react';
-import { useForm } from 'react-hook-form';
-import { SearchFilters, TourStatus } from '../types/tour';
-import { Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface SearchFiltersProps {
-  onSearch: (filters: SearchFilters) => void;
-  onClear: () => void;
-  popularDestinations?: string[];
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalElements: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }
 
-const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({ 
-  onSearch, 
-  onClear, 
-  popularDestinations = [] 
+const Pagination: React.FC<PaginationProps> = ({
+  currentPage,
+  totalPages,
+  totalElements,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }) => {
-  const { register, handleSubmit, reset, watch } = useForm<SearchFilters>();
+  const startItem = currentPage * pageSize + 1;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
 
-  const handleFormSubmit = (data: SearchFilters) => {
-    // Remove campos vazios
-    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-      if (value !== '' && value !== undefined && value !== null) {
-        acc[key as keyof SearchFilters] = value;
-      }
-      return acc;
-    }, {} as SearchFilters);
-    
-    onSearch(cleanData);
+  const getVisiblePages = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else if (totalPages > 1) {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
   };
 
-  const handleClear = () => {
-    reset();
-    onClear();
+  const handlePageChange = (page: number) => {
+    if (page >= 0 && page < totalPages && page !== currentPage) {
+      onPageChange(page);
+    }
   };
 
-  const watchedValues = watch();
-  const hasFilters = Object.values(watchedValues).some(value => 
-    value !== '' && value !== undefined && value !== null
-  );
+  const handlePageSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = parseInt(event.target.value);
+    onPageSizeChange(newSize);
+  };
+
+  if (totalPages <= 1) {
+    return null;
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h3 className="text-lg font-semibold mb-4">Filtros de Busca</h3>
-      
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nome do Tour
-            </label>
-            <input
-              type="text"
-              {...register('name')}
-              placeholder="Buscar por nome..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Destino
-            </label>
-            <input
-              type="text"
-              {...register('destination')}
-              placeholder="Buscar por destino..."
-              list="destinations"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <datalist id="destinations">
-              {popularDestinations.map((destination) => (
-                <option key={destination} value={destination} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+    <div className="border-t border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between">
+        {/* Info sobre itens */}
+        <div className="flex items-center space-x-4">
+          <p className="text-sm text-gray-700">
+            Mostrando <span className="font-medium">{startItem}</span> a{' '}
+            <span className="font-medium">{endItem}</span> de{' '}
+            <span className="font-medium">{totalElements}</span> resultados
+          </p>
+          
+          <div className="flex items-center space-x-2">
+            <label htmlFor="pageSize" className="text-sm text-gray-700">
+              Itens por página:
             </label>
             <select
-              {...register('status')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              id="pageSize"
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Todos os status</option>
-              <option value={TourStatus.DRAFT}>Rascunho</option>
-              <option value={TourStatus.ACTIVE}>Ativo</option>
-              <option value={TourStatus.FULL}>Lotado</option>
-              <option value={TourStatus.CANCELLED}>Cancelado</option>
-              <option value={TourStatus.COMPLETED}>Concluído</option>
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
             </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Preço Mínimo (R$)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register('minPrice')}
-              placeholder="0,00"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        {/* Controles de paginação */}
+        <div className="flex items-center space-x-2">
+          {/* Botão anterior */}
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 0}
+            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="sr-only">Anterior</span>
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Números das páginas */}
+          <div className="flex">
+            {getVisiblePages().map((page, index) => {
+              if (page === '...') {
+                return (
+                  <span
+                    key={`dots-${index}`}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              const pageNumber = page as number;
+              const isCurrentPage = pageNumber - 1 === currentPage;
+
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber - 1)}
+                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                    isCurrentPage
+                      ? 'z-10 bg-blue-600 border-blue-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Preço Máximo (R$)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register('maxPrice')}
-              placeholder="9999,99"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {/* Botão próximo */}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages - 1}
+            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="sr-only">Próximo</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Duração Mínima (dias)
-            </label>
-            <input
-              type="number"
-              {...register('minDays')}
-              placeholder="1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Duração Máxima (dias)
-            </label>
-            <input
-              type="number"
-              {...register('maxDays')}
-              placeholder="365"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus
+export default Pagination;
