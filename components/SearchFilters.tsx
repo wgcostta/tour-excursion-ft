@@ -53,7 +53,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               type="text"
               {...register('name')}
               placeholder="Buscar por nome..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
             />
           </div>
 
@@ -66,7 +66,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               {...register('destination')}
               placeholder="Buscar por destino..."
               list="destinations"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
             />
             <datalist id="destinations">
               {popularDestinations.map((destination) => (
@@ -81,7 +81,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
             </label>
             <select
               {...register('status')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
             >
               <option value="">Todos os status</option>
               <option value={TourStatus.DRAFT}>Rascunho</option>
@@ -103,7 +103,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               step="0.01"
               {...register('minPrice')}
               placeholder="0,00"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
             />
           </div>
 
@@ -116,7 +116,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               step="0.01"
               {...register('maxPrice')}
               placeholder="9999,99"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
             />
           </div>
 
@@ -128,7 +128,7 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               type="number"
               {...register('minDays')}
               placeholder="1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
             />
           </div>
 
@@ -140,7 +140,8 @@ const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({
               type="number"
               {...register('maxDays')}
               placeholder="365"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
+            />:ring-blue-500"
             />
           </div>
         </div>
