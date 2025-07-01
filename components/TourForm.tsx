@@ -1,8 +1,8 @@
 // components/TourForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { TourRequest, TourStatus, TourResponse } from '../types/tour';
-import { Save, X } from 'lucide-react';
+import { Save, X, AlertCircle } from 'lucide-react';
 
 interface TourFormProps {
   tour?: TourResponse;
@@ -11,8 +11,25 @@ interface TourFormProps {
   isLoading?: boolean;
 }
 
+interface ApiValidationError {
+  timestamp: string;
+  status: number;
+  error: string;
+  message: string;
+  validationErrors: Record<string, string>;
+}
+
 const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<TourRequest>({
+  const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
+  const [globalError, setGlobalError] = useState<string>('');
+
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors },
+    setError,
+    clearErrors
+  } = useForm<TourRequest>({
     defaultValues: tour ? {
       name: tour.name,
       description: tour.description,
@@ -30,10 +47,47 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
 
   const handleFormSubmit = async (data: TourRequest) => {
     try {
+      // Limpar erros anteriores
+      setApiErrors({});
+      setGlobalError('');
+      clearErrors();
+
       await onSubmit(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar tour:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data as ApiValidationError;
+        
+        // Se há erros de validação específicos por campo
+        if (errorData.validationErrors) {
+          const validationErrors = errorData.validationErrors;
+          setApiErrors(validationErrors);
+          
+          // Definir erros nos campos do react-hook-form também
+          Object.entries(validationErrors).forEach(([field, message]) => {
+            setError(field as keyof TourRequest, {
+              type: 'server',
+              message: message
+            });
+          });
+        } else {
+          // Erro geral
+          setGlobalError(errorData.message || 'Erro ao salvar tour');
+        }
+      } else {
+        setGlobalError('Erro inesperado ao salvar tour');
+      }
     }
+  };
+
+  const getFieldError = (fieldName: keyof TourRequest) => {
+    // Prioriza erro do react-hook-form, depois erro da API
+    return errors[fieldName]?.message || apiErrors[fieldName];
+  };
+
+  const hasFieldError = (fieldName: keyof TourRequest) => {
+    return !!(errors[fieldName] || apiErrors[fieldName]);
   };
 
   return (
@@ -41,6 +95,19 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
       <h2 className="text-2xl font-bold mb-6">
         {tour ? 'Editar Tour' : 'Novo Tour'}
       </h2>
+      
+      {/* Erro global */}
+      {globalError && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <AlertCircle className="w-5 h-5 text-red-400 mr-2 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Erro ao salvar</h3>
+              <p className="text-sm text-red-700 mt-1">{globalError}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -51,10 +118,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             <input
               type="text"
               {...register('name', { required: 'Nome é obrigatório' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white placeholder-gray-500 ${
+                hasFieldError('name')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+            {getFieldError('name') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('name')}
+              </p>
             )}
           </div>
 
@@ -65,10 +139,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             <input
               type="text"
               {...register('destination', { required: 'Destino é obrigatório' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white placeholder-gray-500 ${
+                hasFieldError('destination')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.destination && (
-              <p className="text-red-500 text-sm mt-1">{errors.destination.message}</p>
+            {getFieldError('destination') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('destination')}
+              </p>
             )}
           </div>
         </div>
@@ -78,12 +159,24 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             Descrição *
           </label>
           <textarea
-            {...register('description', { required: 'Descrição é obrigatória' })}
+            {...register('description', { 
+              required: 'Descrição é obrigatória',
+              minLength: { value: 10, message: 'Descrição deve ter pelo menos 10 caracteres' },
+              maxLength: { value: 1000, message: 'Descrição deve ter no máximo 1000 caracteres' }
+            })}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 resize-vertical text-gray-900 bg-white placeholder-gray-500 ${
+              hasFieldError('description')
+                ? 'border-red-300 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
+            placeholder="Descreva o tour detalhadamente (mínimo 10 caracteres)"
           />
-          {errors.description && (
-            <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+          {getFieldError('description') && (
+            <p className="text-red-500 text-sm mt-1 flex items-center">
+              <AlertCircle className="w-4 h-4 mr-1" />
+              {getFieldError('description')}
+            </p>
           )}
         </div>
 
@@ -99,10 +192,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
                 required: 'Preço é obrigatório',
                 min: { value: 0, message: 'Preço deve ser positivo' }
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white placeholder-gray-500 ${
+                hasFieldError('price')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.price && (
-              <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>
+            {getFieldError('price') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('price')}
+              </p>
             )}
           </div>
 
@@ -116,10 +216,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
                 required: 'Duração é obrigatória',
                 min: { value: 1, message: 'Duração deve ser pelo menos 1 dia' }
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white placeholder-gray-500 ${
+                hasFieldError('durationDays')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.durationDays && (
-              <p className="text-red-500 text-sm mt-1">{errors.durationDays.message}</p>
+            {getFieldError('durationDays') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('durationDays')}
+              </p>
             )}
           </div>
 
@@ -133,10 +240,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
                 required: 'Máximo de participantes é obrigatório',
                 min: { value: 1, message: 'Deve ser pelo menos 1 participante' }
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white placeholder-gray-500 ${
+                hasFieldError('maxParticipants')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.maxParticipants && (
-              <p className="text-red-500 text-sm mt-1">{errors.maxParticipants.message}</p>
+            {getFieldError('maxParticipants') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('maxParticipants')}
+              </p>
             )}
           </div>
         </div>
@@ -148,7 +262,11 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             </label>
             <select
               {...register('status', { required: 'Status é obrigatório' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white ${
+                hasFieldError('status')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             >
               <option value={TourStatus.DRAFT}>Rascunho</option>
               <option value={TourStatus.ACTIVE}>Ativo</option>
@@ -156,8 +274,11 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
               <option value={TourStatus.CANCELLED}>Cancelado</option>
               <option value={TourStatus.COMPLETED}>Concluído</option>
             </select>
-            {errors.status && (
-              <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>
+            {getFieldError('status') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('status')}
+              </p>
             )}
           </div>
 
@@ -168,10 +289,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             <input
               type="date"
               {...register('startDate', { required: 'Data de início é obrigatória' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white ${
+                hasFieldError('startDate')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.startDate && (
-              <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
+            {getFieldError('startDate') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('startDate')}
+              </p>
             )}
           </div>
 
@@ -182,10 +310,17 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
             <input
               type="date"
               {...register('endDate', { required: 'Data de fim é obrigatória' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-900 bg-white ${
+                hasFieldError('endDate')
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {errors.endDate && (
-              <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>
+            {getFieldError('endDate') && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('endDate')}
+              </p>
             )}
           </div>
         </div>
@@ -194,7 +329,8 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSubmit, onCancel, isLoading
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 flex items-center space-x-2"
+            disabled={isLoading}
+            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 flex items-center space-x-2"
           >
             <X size={16} />
             <span>Cancelar</span>

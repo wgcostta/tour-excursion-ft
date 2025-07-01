@@ -13,6 +13,17 @@ import Pagination from '../components/Pagination';
 import { tourApi } from '../lib/api';
 import { TourRequest, TourResponse, SearchFilters as SearchFiltersType, TourSummary } from '../types/tour';
 
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+      validationErrors?: Record<string, string>;
+      error?: string;
+    };
+  };
+  message?: string;
+}
+
 export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [editingTour, setEditingTour] = useState<TourResponse | null>(null);
@@ -48,6 +59,28 @@ export default function Home() {
     }
   );
 
+  const handleApiError = (error: ApiError, defaultMessage: string) => {
+    let errorMessage = defaultMessage;
+
+    if (error.response?.data) {
+      const { message, validationErrors, error: errorType } = error.response.data;
+      
+      if (validationErrors && Object.keys(validationErrors).length > 0) {
+        // Se há erros de validação, mostrar o primeiro
+        const firstError = Object.values(validationErrors)[0];
+        errorMessage = firstError;
+      } else if (message) {
+        errorMessage = message;
+      } else if (errorType) {
+        errorMessage = errorType;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return errorMessage;
+  };
+
   // Mutation para criar tour
   const createTourMutation = useMutation(tourApi.createTour, {
     onSuccess: () => {
@@ -56,8 +89,10 @@ export default function Home() {
       toast.success('Tour criado com sucesso!');
       setShowForm(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao criar tour');
+    onError: (error: ApiError) => {
+      const errorMessage = handleApiError(error, 'Erro ao criar tour');
+      toast.error(errorMessage);
+      // Não fechar o formulário para que o usuário veja os erros específicos
     },
   });
 
@@ -72,8 +107,10 @@ export default function Home() {
         setShowForm(false);
         setEditingTour(null);
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.message || 'Erro ao atualizar tour');
+      onError: (error: ApiError) => {
+        const errorMessage = handleApiError(error, 'Erro ao atualizar tour');
+        toast.error(errorMessage);
+        // Não fechar o formulário para que o usuário veja os erros específicos
       },
     }
   );
@@ -85,8 +122,9 @@ export default function Home() {
       queryClient.invalidateQueries('popularDestinations');
       toast.success('Tour excluído com sucesso!');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao excluir tour');
+    onError: (error: ApiError) => {
+      const errorMessage = handleApiError(error, 'Erro ao excluir tour');
+      toast.error(errorMessage);
     },
   });
 
@@ -101,16 +139,32 @@ export default function Home() {
       setEditingTour(tour);
       setShowForm(true);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao buscar tour');
+      const errorMessage = handleApiError(error, 'Erro ao buscar tour');
+      toast.error(errorMessage);
     }
   };
 
   const handleViewTour = async (id: string) => {
     try {
       const tour = await tourApi.getTourById(id);
-      alert(`Tour: ${tour.name}\nDescrição: ${tour.description}\nDestino: ${tour.destination}\nPreço: R$ ${tour.price}`);
+      
+      // Criar um modal ou dialog melhor para visualização
+      const tourInfo = `
+🏷️ Tour: ${tour.name}
+📍 Destino: ${tour.destination}
+📝 Descrição: ${tour.description}
+💰 Preço: R$ ${tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+⏱️ Duração: ${tour.durationDays} dias
+👥 Participantes: ${tour.currentParticipants}/${tour.maxParticipants}
+📅 Início: ${new Date(tour.startDate).toLocaleDateString('pt-BR')}
+📅 Fim: ${new Date(tour.endDate).toLocaleDateString('pt-BR')}
+🏷️ Status: ${tour.status}
+      `.trim();
+      
+      alert(tourInfo);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao buscar tour');
+      const errorMessage = handleApiError(error, 'Erro ao buscar tour');
+      toast.error(errorMessage);
     }
   };
 
@@ -122,9 +176,9 @@ export default function Home() {
 
   const handleFormSubmit = async (data: TourRequest) => {
     if (editingTour) {
-      updateTourMutation.mutate({ id: editingTour.id, data });
+      return updateTourMutation.mutateAsync({ id: editingTour.id, data });
     } else {
-      createTourMutation.mutate(data);
+      return createTourMutation.mutateAsync(data);
     }
   };
 
@@ -157,11 +211,24 @@ export default function Home() {
   const totalElements = toursData?.totalElements || 0;
 
   if (toursError) {
+    const errorMessage = handleApiError(toursError as ApiError, 'Erro ao carregar dados');
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Erro ao carregar dados</h1>
-          <p className="text-gray-600">Verifique se a API está funcionando corretamente</p>
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <h1 className="text-xl font-bold text-red-800 mb-2">Erro ao carregar tours</h1>
+            <p className="text-red-600 text-sm">{errorMessage}</p>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Verifique se a API está funcionando corretamente e tente novamente.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Tentar Novamente
+          </button>
         </div>
       </div>
     );
@@ -177,7 +244,26 @@ export default function Home() {
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <Toaster position="top-right" />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 5000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              style: {
+                background: '#22c55e',
+              },
+            },
+            error: {
+              style: {
+                background: '#ef4444',
+              },
+            },
+          }}
+        />
         
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
@@ -187,7 +273,7 @@ export default function Home() {
               {!showForm && (
                 <button
                   onClick={handleCreateTour}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
                 >
                   <Plus size={20} />
                   <span>Novo Tour</span>
