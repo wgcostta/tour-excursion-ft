@@ -1,343 +1,189 @@
-// pages/index.tsx
-import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Loader } from 'lucide-react';
+import React from 'react';
+import Layout from '../components/Layout';
+import Link from 'next/link';
+import { MapPin, Users, Shield, Clock, Star, ArrowRight } from 'lucide-react';
 
-import TourList from '../components/TourList';
-import TourForm from '../components/TourForm';
-import SearchFilters from '../components/SearchFilters';
-import Pagination from '../components/Pagination';
-
-import { tourApi } from '../lib/api';
-import { TourRequest, TourResponse, SearchFilters as SearchFiltersType, TourSummary } from '../types/tour';
-
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-      validationErrors?: Record<string, string>;
-      error?: string;
-    };
-  };
-  message?: string;
-}
-
-export default function Home() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingTour, setEditingTour] = useState<TourResponse | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({});
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortDir, setSortDir] = useState('desc');
-
-  const queryClient = useQueryClient();
-
-  // Query para buscar tours
-  const { data: toursData, isLoading: isLoadingTours, error: toursError } = useQuery(
-    ['tours', currentPage, pageSize, sortBy, sortDir, searchFilters],
-    () => {
-      if (Object.keys(searchFilters).length > 0) {
-        return tourApi.searchTours(searchFilters, currentPage, pageSize, sortBy, sortDir);
-      }
-      return tourApi.getAllTours(currentPage, pageSize, sortBy, sortDir);
+const HomePage: React.FC = () => {
+  const features = [
+    {
+      icon: MapPin,
+      title: 'Destinos Incríveis',
+      description: 'Descubra os melhores destinos do Brasil com organizadores experientes.',
     },
     {
-      keepPreviousData: true,
-      staleTime: 30000, // 30 segundos
-    }
-  );
-
-  // Query para destinos populares
-  const { data: popularDestinations } = useQuery(
-    'popularDestinations',
-    tourApi.getPopularDestinations,
+      icon: Shield,
+      title: 'Pagamento Seguro',
+      description: 'Compre com segurança usando PIX ou cartão de crédito.',
+    },
     {
-      staleTime: 300000, // 5 minutos
-    }
-  );
-
-  const handleApiError = (error: ApiError, defaultMessage: string) => {
-    let errorMessage = defaultMessage;
-
-    if (error.response?.data) {
-      const { message, validationErrors, error: errorType } = error.response.data;
-      
-      if (validationErrors && Object.keys(validationErrors).length > 0) {
-        // Se há erros de validação, mostrar o primeiro
-        const firstError = Object.values(validationErrors)[0];
-        errorMessage = firstError;
-      } else if (message) {
-        errorMessage = message;
-      } else if (errorType) {
-        errorMessage = errorType;
-      }
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    return errorMessage;
-  };
-
-  // Mutation para criar tour
-  const createTourMutation = useMutation(tourApi.createTour, {
-    onSuccess: () => {
-      queryClient.invalidateQueries('tours');
-      queryClient.invalidateQueries('popularDestinations');
-      toast.success('Tour criado com sucesso!');
-      setShowForm(false);
+      icon: Users,
+      title: 'Comunidade Ativa',
+      description: 'Conecte-se com outros viajantes e compartilhe experiências.',
     },
-    onError: (error: ApiError) => {
-      const errorMessage = handleApiError(error, 'Erro ao criar tour');
-      toast.error(errorMessage);
-      // Não fechar o formulário para que o usuário veja os erros específicos
-    },
-  });
-
-  // Mutation para atualizar tour
-  const updateTourMutation = useMutation(
-    ({ id, data }: { id: string; data: TourRequest }) => tourApi.updateTour(id, data),
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries('tours');
-        queryClient.invalidateQueries('popularDestinations');
-        toast.success('Tour atualizado com sucesso!');
-        setShowForm(false);
-        setEditingTour(null);
-      },
-      onError: (error: ApiError) => {
-        const errorMessage = handleApiError(error, 'Erro ao atualizar tour');
-        toast.error(errorMessage);
-        // Não fechar o formulário para que o usuário veja os erros específicos
-      },
-    }
-  );
-
-  // Mutation para deletar tour
-  const deleteTourMutation = useMutation(tourApi.deleteTour, {
-    onSuccess: () => {
-      queryClient.invalidateQueries('tours');
-      queryClient.invalidateQueries('popularDestinations');
-      toast.success('Tour excluído com sucesso!');
+      icon: Clock,
+      title: 'Suporte 24/7',
+      description: 'Nossa equipe está sempre pronta para ajudar você.',
     },
-    onError: (error: ApiError) => {
-      const errorMessage = handleApiError(error, 'Erro ao excluir tour');
-      toast.error(errorMessage);
+  ];
+
+  const testimonials = [
+    {
+      name: 'Maria Silva',
+      location: 'São Paulo, SP',
+      text: 'Melhor plataforma para encontrar excursões! Já fiz 3 viagens e todas foram perfeitas.',
+      rating: 5,
     },
-  });
-
-  const handleCreateTour = () => {
-    setEditingTour(null);
-    setShowForm(true);
-  };
-
-  const handleEditTour = async (id: string) => {
-    try {
-      const tour = await tourApi.getTourById(id);
-      setEditingTour(tour);
-      setShowForm(true);
-    } catch (error: any) {
-      const errorMessage = handleApiError(error, 'Erro ao buscar tour');
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleViewTour = async (id: string) => {
-    try {
-      const tour = await tourApi.getTourById(id);
-      
-      // Criar um modal ou dialog melhor para visualização
-      const tourInfo = `
-🏷️ Tour: ${tour.name}
-📍 Destino: ${tour.destination}
-📝 Descrição: ${tour.description}
-💰 Preço: R$ ${tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-⏱️ Duração: ${tour.durationDays} dias
-👥 Participantes: ${tour.currentParticipants}/${tour.maxParticipants}
-📅 Início: ${new Date(tour.startDate).toLocaleDateString('pt-BR')}
-📅 Fim: ${new Date(tour.endDate).toLocaleDateString('pt-BR')}
-🏷️ Status: ${tour.status}
-      `.trim();
-      
-      alert(tourInfo);
-    } catch (error: any) {
-      const errorMessage = handleApiError(error, 'Erro ao buscar tour');
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleDeleteTour = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este tour?')) {
-      deleteTourMutation.mutate(id);
-    }
-  };
-
-  const handleFormSubmit = async (data: TourRequest) => {
-    if (editingTour) {
-      return updateTourMutation.mutateAsync({ id: editingTour.id, data });
-    } else {
-      return createTourMutation.mutateAsync(data);
-    }
-  };
-
-  const handleFormCancel = () => {
-    setShowForm(false);
-    setEditingTour(null);
-  };
-
-  const handleSearch = (filters: SearchFiltersType) => {
-    setSearchFilters(filters);
-    setCurrentPage(0);
-  };
-
-  const handleClearSearch = () => {
-    setSearchFilters({});
-    setCurrentPage(0);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setCurrentPage(0);
-  };
-
-  const tours = toursData?.content || [];
-  const totalPages = toursData?.totalPages || 0;
-  const totalElements = toursData?.totalElements || 0;
-
-  if (toursError) {
-    const errorMessage = handleApiError(toursError as ApiError, 'Erro ao carregar dados');
-    
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <h1 className="text-xl font-bold text-red-800 mb-2">Erro ao carregar tours</h1>
-            <p className="text-red-600 text-sm">{errorMessage}</p>
-          </div>
-          <p className="text-gray-600 text-sm">
-            Verifique se a API está funcionando corretamente e tente novamente.
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Tentar Novamente
-          </button>
-        </div>
-      </div>
-    );
-  }
+    {
+      name: 'João Santos',
+      location: 'Rio de Janeiro, RJ',
+      text: 'Como organizador, o TourApp revolucionou meu negócio. Vendas aumentaram 300%!',
+      rating: 5,
+    },
+    {
+      name: 'Ana Costa',
+      location: 'Belo Horizonte, MG',
+      text: 'Interface super fácil de usar e pagamento rápido. Recomendo para todos!',
+      rating: 5,
+    },
+  ];
 
   return (
-    <>
-      <Head>
-        <title>Tour App - Gerenciamento de Tours</title>
-        <meta name="description" content="Sistema de gerenciamento de tours turísticos" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <div className="min-h-screen bg-gray-50">
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 5000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              style: {
-                background: '#22c55e',
-              },
-            },
-            error: {
-              style: {
-                background: '#ef4444',
-              },
-            },
-          }}
-        />
-        
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <h1 className="text-2xl font-bold text-gray-900">Tour App</h1>
-              {!showForm && (
-                <button
-                  onClick={handleCreateTour}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
-                >
-                  <Plus size={20} />
-                  <span>Novo Tour</span>
-                </button>
-              )}
+    <Layout>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-primary-600 to-secondary-600 text-white">
+        <div className="absolute inset-0 bg-black opacity-20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Descubra o Brasil com{' '}
+              <span className="text-gradient">TourApp</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+              A plataforma que conecta viajantes aos melhores organizadores de excursões do país.
+              Viaje com segurança, comodidade e preços justos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/excursoes" className="btn-primary text-lg px-8 py-3">
+                Ver Excursões
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+              <Link href="/auth/register" className="btn-outline text-lg px-8 py-3 bg-white text-primary-600 hover:bg-gray-100">
+                Cadastre-se Grátis
+              </Link>
             </div>
           </div>
-        </header>
+        </div>
+      </section>
 
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {showForm ? (
-            <TourForm
-              tour={editingTour || undefined}
-              onSubmit={handleFormSubmit}
-              onCancel={handleFormCancel}
-              isLoading={createTourMutation.isLoading || updateTourMutation.isLoading}
-            />
-          ) : (
-            <>
-              {/* Filtros de Busca */}
-              <SearchFilters
-                onSearch={handleSearch}
-                onClear={handleClearSearch}
-                popularDestinations={popularDestinations}
-              />
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Por que escolher o TourApp?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Oferecemos a melhor experiência tanto para viajantes quanto para organizadores de excursões.
+            </p>
+          </div>
 
-              {/* Lista de Tours */}
-              <div className="bg-white rounded-lg shadow-sm">
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Tours ({totalElements})
-                    </h2>
-                    {isLoadingTours && (
-                      <Loader className="animate-spin text-blue-600" size={20} />
-                    )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <div key={index} className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-lg mb-4">
+                    <Icon className="h-8 w-8 text-white" />
                   </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600">
+                    {feature.description}
+                  </p>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-                <div className="p-6">
-                  <TourList
-                    tours={tours}
-                    onEdit={handleEditTour}
-                    onDelete={handleDeleteTour}
-                    onView={handleViewTour}
-                    isLoading={isLoadingTours}
-                  />
+      {/* Stats Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-primary-600 mb-2">500+</div>
+              <div className="text-gray-600">Excursões Realizadas</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary-600 mb-2">10k+</div>
+              <div className="text-gray-600">Viajantes Satisfeitos</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary-600 mb-2">100+</div>
+              <div className="text-gray-600">Organizadores Parceiros</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              O que nossos usuários dizem
+            </h2>
+            <p className="text-xl text-gray-600">
+              Depoimentos reais de quem já usou o TourApp
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
                 </div>
-
-                {/* Paginação */}
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalElements={totalElements}
-                  pageSize={pageSize}
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={handlePageSizeChange}
-                />
+                <p className="text-gray-700 mb-4 italic">
+                  "{testimonial.text}"
+                </p>
+                <div>
+                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                  <div className="text-sm text-gray-600">{testimonial.location}</div>
+                </div>
               </div>
-            </>
-          )}
-        </main>
-      </div>
-    </>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-primary-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Pronto para sua próxima aventura?
+          </h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto">
+            Junte-se a milhares de viajantes que já descobriram o Brasil com o TourApp.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/excursoes" className="btn bg-white text-primary-600 hover:bg-gray-100 text-lg px-8 py-3">
+              Explorar Excursões
+            </Link>
+            <Link href="/auth/register?type=organizador" className="btn-outline border-white text-white hover:bg-white hover:text-primary-600 text-lg px-8 py-3">
+              Tornar-se Organizador
+            </Link>
+          </div>
+        </div>
+      </section>
+    </Layout>
   );
-}
+};
+
+export default HomePage;
+
