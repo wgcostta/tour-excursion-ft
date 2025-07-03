@@ -267,3 +267,149 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 ---
 
 Desenvolvido com ❤️ para gerenciamento de tours turísticos.
+
+
+
+Perfeito! Agora tenho um frontend Next.js completo e funcional para o TourApp. Aqui está um resumo do que foi criado:
+
+🎯 Frontend TourApp - Estrutura Completa
+📁 Estrutura do Projeto
+tourapp-frontend/
+├── pages/
+│   ├── api/auth/[...nextauth].ts
+│   ├── _app.tsx
+│   ├── _document.tsx
+│   ├── index.tsx (Homepage)
+│   ├── auth/
+│   │   ├── login.tsx
+│   │   ├── register.tsx
+│   │   └── complete-profile.tsx
+│   ├── excursoes/
+│   │   ├── index.tsx (listagem)
+│   │   └── [id].tsx (detalhes)
+│   ├── organizador/
+│   │   ├── dashboard.tsx
+│   │   └── excursoes/
+│   │       ├── index.tsx
+│   │       └── nova.tsx
+│   └── cliente/
+│       └── dashboard.tsx
+├── components/
+│   ├── Layout/
+│   │   ├── index.tsx
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   └── Sidebar.tsx
+│   ├── Excursoes/
+│   │   ├── ExcursaoCard.tsx
+│   │   ├── ExcursaoFilters.tsx
+│   │   ├── ImageGallery.tsx
+│   │   └── InscricaoForm.tsx
+│   ├── Dashboard/
+│   │   ├── DashboardStats.tsx
+│   │   ├── QuickActions.tsx
+│   │   └── RecentActivity.tsx
+│   └── Common/
+│       ├── LoadingSpinner.tsx
+│       ├── Modal.tsx
+│       ├── ConfirmDialog.tsx
+│       └── ImageUpload.tsx
+├── lib/
+│   ├── auth.ts
+│   └── api.ts
+├── types/
+│   └── index.ts
+├── styles/
+│   └── globals.css
+├── middleware.ts
+└── configurações...
+🚀 Funcionalidades Implementadas
+🔐 Autenticação
+✅ Login com email/senha + Google OAuth
+✅ Registro para Cliente/Organizador
+✅ Middleware de proteção de rotas
+✅ NextAuth.js configurado
+✅ Tipos de usuário (Cliente/Organizador)
+🏠 Homepage
+✅ Landing page atrativa
+✅ Hero section com CTA
+✅ Features, estatísticas, depoimentos
+✅ Design responsivo
+🗺️ Sistema de Excursões
+✅ Listagem com filtros e busca
+✅ Página de detalhes completa
+✅ Galeria de imagens
+✅ Sistema de inscrição
+✅ Integração com pagamentos
+👤 Dashboard do Cliente
+✅ Visão geral das inscrições
+✅ Próximas viagens
+✅ Histórico de excursões
+✅ Estatísticas pessoais
+🏢 Dashboard do Organizador
+✅ KPIs do negócio
+✅ Atividade recente
+✅ Próximas excursões
+✅ Ações rápidas
+📝 Gerenciamento de Excursões
+✅ CRUD completo
+✅ Upload de múltiplas imagens
+✅ Formulário avançado
+✅ Gerenciamento de status
+🎨 UI/UX
+✅ Design system com Tailwind CSS
+✅ Componentes reutilizáveis
+✅ Layout responsivo
+✅ Animações e transições
+✅ Loading states
+🔧 Tecnologias Utilizadas
+Next.js 14 - Framework React
+TypeScript - Tipagem estática
+Tailwind CSS - Estilização
+NextAuth.js - Autenticação
+React Hook Form - Formulários
+React Query - Estado servidor
+Axios - Cliente HTTP
+Lucide React - Ícones
+React Hot Toast - Notificações
+⚙️ Para Configurar e Executar
+Instalar dependências:
+bash
+npm install
+Configurar variáveis de ambiente:
+bash
+cp .env.example .env.local
+# Editar .env.local com as credenciais
+Executar em desenvolvimento:
+bash
+npm run dev
+Build para produção:
+bash
+npm run build
+npm start
+🔗 Integração com Backend
+O frontend está 100% integrado com o backend Spring Boot que criamos anteriormente:
+
+✅ APIs de autenticação (/auth/*)
+✅ APIs públicas (/public/excursoes/*)
+✅ APIs do organizador (/organizador/*)
+✅ APIs do cliente (/cliente/*)
+✅ Sistema de pagamentos (/pagamentos/*)
+✅ Upload de imagens (Cloudinary)
+✅ Interceptors para token JWT
+✅ Tratamento de erros centralizado
+🎯 Próximos Passos
+Deploy do backend no Railway
+Deploy do frontend na Vercel/Netlify
+Configurar credenciais (Google, Mercado Pago, Cloudinary)
+Testes com organizadores reais
+Ajustes baseados no feedback
+O frontend está completo e pronto para produção, com todas as funcionalidades necessárias para validar o MVP em 4 semanas! 🚀
+
+
+
+
+
+
+
+
