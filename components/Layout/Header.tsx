@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSession, signOut } from 'next-auth/react';
 import { 
   Menu, 
   X, 
@@ -13,13 +12,26 @@ import {
   Search
 } from 'lucide-react';
 
+// Mock session para desenvolvimento - remover quando NextAuth estiver configurado
+interface MockSession {
+  user?: {
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+  userType?: string;
+}
+
 const Header: React.FC = () => {
-  const { data: session } = useSession();
+  // Mock session - substituir por useSession quando NextAuth estiver configurado
+  const session: MockSession | null = null; // Para teste, mude para um objeto mock se quiser simular login
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+    // Implementar logout quando NextAuth estiver configurado
+    console.log('Logout');
   };
 
   const isOrganizador = session?.userType === 'ORGANIZADOR';
@@ -211,4 +223,3 @@ const Header: React.FC = () => {
 };
 
 export default Header;
-
