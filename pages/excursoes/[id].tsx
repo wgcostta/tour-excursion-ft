@@ -37,8 +37,8 @@ const ExcursaoDetailsPage: React.FC = () => {
   const loadExcursao = async () => {
     try {
       setLoading(true);
-      const response = await excursoesService.getPublicExcursao(id as string);
-      setExcursao(response.data);
+      const response = await excursoesService.obterExcursaoPublica(id as string);
+      setExcursao(response.data.data);
     } catch (error) {
       toast.error('Excursão não encontrada');
       router.push('/excursoes');
@@ -48,11 +48,11 @@ const ExcursaoDetailsPage: React.FC = () => {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
+    if (navigator.share && excursao) {
       try {
         await navigator.share({
-          title: excursao?.titulo,
-          text: excursao?.descricao,
+          title: excursao.titulo,
+          text: excursao.descricao,
           url: window.location.href,
         });
       } catch (error) {
@@ -67,9 +67,9 @@ const ExcursaoDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="animate-pulse">
-          <div className="h-64 bg-gray-300 rounded-lg mb-6"></div>
+      <Layout title="Carregando...">
+        <div className="animate-pulse space-y-6">
+          <div className="h-64 bg-gray-300 rounded-lg"></div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="h-8 bg-gray-300 rounded"></div>
@@ -85,7 +85,7 @@ const ExcursaoDetailsPage: React.FC = () => {
 
   if (!excursao) {
     return (
-      <Layout>
+      <Layout title="Excursão não encontrada">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
             Excursão não encontrada
@@ -101,7 +101,7 @@ const ExcursaoDetailsPage: React.FC = () => {
   const isDisponivel = excursao.status === 'ATIVA' && excursao.vagasDisponiveis > 0;
 
   return (
-    <Layout>
+    <Layout title={`${excursao.titulo} - TourApp`}>
       <div className="space-y-6">
         {/* Image Gallery */}
         <ImageGallery images={excursao.imagens} title={excursao.titulo} />
@@ -110,7 +110,7 @@ const ExcursaoDetailsPage: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Header */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="card p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -118,7 +118,7 @@ const ExcursaoDetailsPage: React.FC = () => {
                   </h1>
                   <div className="flex items-center text-gray-600 mb-2">
                     <MapPin className="h-5 w-5 mr-2" />
-                    <span>{excursao.destino}</span>
+                    <span>{excursao.localDestino}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Users className="h-5 w-5 mr-2" />
@@ -136,12 +136,12 @@ const ExcursaoDetailsPage: React.FC = () => {
 
               {/* Status Badge */}
               <div className="mb-4">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                <span className={`badge ${
                   excursao.status === 'ATIVA'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'badge-success'
                     : excursao.status === 'INATIVA'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'bg-red-100 text-red-800'
+                    ? 'badge-gray'
+                    : 'badge-error'
                 }`}>
                   {excursao.status === 'ATIVA' ? 'Disponível' :
                    excursao.status === 'INATIVA' ? 'Indisponível' : 'Cancelada'}
@@ -155,37 +155,31 @@ const ExcursaoDetailsPage: React.FC = () => {
                     <span className="text-3xl font-bold text-primary-600">
                       {formatCurrency(excursao.preco)}
                     </span>
-                    {excursao.precoMenor && (
-                      <div className="text-sm text-gray-600">
-                        Criança: {formatCurrency(excursao.precoMenor)}
-                      </div>
-                    )}
+                    <div className="text-sm text-gray-600">por pessoa</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Details */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Detalhes da Excursão
-              </h2>
+            <div className="card p-6">
+              <h2 className="section-title">Detalhes da Excursão</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
-                    <div className="text-sm text-gray-600">Data de Ida</div>
-                    <div className="font-medium">{formatDate(excursao.dataIda)}</div>
+                    <div className="text-sm text-gray-600">Data de Saída</div>
+                    <div className="font-medium">{formatDate(excursao.dataSaida)}</div>
                   </div>
                 </div>
 
-                {excursao.dataVolta && (
+                {excursao.dataRetorno && (
                   <div className="flex items-center">
                     <Calendar className="h-5 w-5 text-gray-400 mr-3" />
                     <div>
-                      <div className="text-sm text-gray-600">Data de Volta</div>
-                      <div className="font-medium">{formatDate(excursao.dataVolta)}</div>
+                      <div className="text-sm text-gray-600">Data de Retorno</div>
+                      <div className="font-medium">{formatDate(excursao.dataRetorno)}</div>
                     </div>
                   </div>
                 )}
@@ -194,7 +188,12 @@ const ExcursaoDetailsPage: React.FC = () => {
                   <Clock className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
                     <div className="text-sm text-gray-600">Horário de Saída</div>
-                    <div className="font-medium">{excursao.horarioSaida}</div>
+                    <div className="font-medium">
+                      {new Date(excursao.dataSaida).toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -219,13 +218,22 @@ const ExcursaoDetailsPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {excursao.observacoes && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Observações Importantes
+                  </h3>
+                  <div className="text-gray-700">
+                    {excursao.observacoes}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Organizador Info */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Sobre o Organizador
-              </h2>
+            <div className="card p-6">
+              <h2 className="section-title">Sobre o Organizador</h2>
               
               <div className="flex items-start space-x-4">
                 <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
@@ -268,16 +276,25 @@ const ExcursaoDetailsPage: React.FC = () => {
           {/* Sidebar - Booking */}
           <div className="lg:col-span-1">
             <div className="sticky top-6">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="card p-6">
                 <div className="mb-6">
                   <div className="text-2xl font-bold text-primary-600 mb-2">
                     {formatCurrency(excursao.preco)}
                   </div>
-                  {excursao.precoMenor && (
-                    <div className="text-sm text-gray-600">
-                      Criança: {formatCurrency(excursao.precoMenor)}
-                    </div>
-                  )}
+                  <div className="text-sm text-gray-600">por pessoa</div>
+                </div>
+
+                {/* Formas de Pagamento */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Formas de Pagamento</h4>
+                  <div className="flex space-x-2">
+                    {excursao.aceitaPix && (
+                      <span className="badge badge-success">PIX</span>
+                    )}
+                    {excursao.aceitaCartao && (
+                      <span className="badge badge-info">Cartão</span>
+                    )}
+                  </div>
                 </div>
 
                 {isDisponivel ? (
@@ -307,7 +324,7 @@ const ExcursaoDetailsPage: React.FC = () => {
                     )}
                   </>
                 ) : (
-                  <button disabled className="btn-secondary w-full mb-4 opacity-50 cursor-not-allowed">
+                  <button disabled className="btn-primary w-full mb-4 opacity-50 cursor-not-allowed">
                     {excursao.status === 'CANCELADA' ? 'Excursão Cancelada' : 'Esgotado'}
                   </button>
                 )}
@@ -349,4 +366,3 @@ const ExcursaoDetailsPage: React.FC = () => {
 };
 
 export default ExcursaoDetailsPage;
-

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
+import { signIn } from 'next-auth/react';
 import Layout from '../../components/Layout';
 import { MapPin } from 'lucide-react';
 import { authService } from '../../lib/api';
@@ -64,14 +65,27 @@ const CompleteProfilePage: React.FC = () => {
 
       toast.success('Perfil completado com sucesso!');
       
-      // Redirecionar baseado no tipo de usuário
-      const redirectUrl = data.userType === 'ORGANIZADOR' 
-        ? '/organizador/dashboard' 
-        : '/cliente/dashboard';
-      
-      router.push(redirectUrl);
+      // Fazer login automático
+      const result = await signIn('google', {
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error('Erro no login automático');
+        router.push('/auth/login');
+      } else {
+        // Redirecionar baseado no tipo de usuário
+        const redirectUrl = data.userType === 'ORGANIZADOR' 
+          ? '/organizador/dashboard' 
+          : '/cliente/dashboard';
+        
+        router.push(redirectUrl);
+      }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao completar perfil');
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error?.message ||
+                          'Erro ao completar perfil';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -79,9 +93,10 @@ const CompleteProfilePage: React.FC = () => {
 
   if (!userInfo) {
     return (
-      <Layout>
+      <Layout title="Carregando...">
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Carregando...
             </h2>
@@ -92,7 +107,7 @@ const CompleteProfilePage: React.FC = () => {
   }
 
   return (
-    <Layout>
+    <Layout title="Completar Perfil - TourApp">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
@@ -178,7 +193,7 @@ const CompleteProfilePage: React.FC = () => {
                   })}
                 />
                 {errors.telefone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.telefone.message}</p>
+                  <p className="form-error">{errors.telefone.message}</p>
                 )}
               </div>
 
@@ -198,7 +213,7 @@ const CompleteProfilePage: React.FC = () => {
                       })}
                     />
                     {errors.nomeEmpresa && (
-                      <p className="mt-1 text-sm text-red-600">{errors.nomeEmpresa.message}</p>
+                      <p className="form-error">{errors.nomeEmpresa.message}</p>
                     )}
                   </div>
 
@@ -223,7 +238,7 @@ const CompleteProfilePage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full"
               >
                 {isLoading ? 'Completando perfil...' : 'Finalizar cadastro'}
               </button>

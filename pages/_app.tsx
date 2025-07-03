@@ -1,28 +1,38 @@
-import '@/styles/globals.css';
+import '../styles/globals.css';
 import type { AppProps } from 'next/app';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { SessionProvider } from 'next-auth/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from '@/hooks/useAuth';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useState } from 'react';
+import ErrorBoundary from '../components/ErrorBoundary';
 
-function MyApp({ Component, pageProps }: AppProps) {
+export default function App({
+  Component,
+  pageProps: { session, ...pageProps },
+}: AppProps) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
         retry: 1,
-        refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
         refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        retry: 1,
       },
     },
   }));
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
-        <AuthProvider>
+    <ErrorBoundary>
+      <SessionProvider session={session}>
+        <QueryClientProvider client={queryClient}>
           <Component {...pageProps} />
+          
+          {/* Toast notifications */}
           <Toaster
             position="top-right"
             toastOptions={{
@@ -30,21 +40,48 @@ function MyApp({ Component, pageProps }: AppProps) {
               style: {
                 background: '#363636',
                 color: '#fff',
+                fontSize: '14px',
+                borderRadius: '8px',
+                padding: '12px 16px',
               },
               success: {
                 duration: 3000,
-                theme: {
-                  primary: 'green',
-                  secondary: 'black',
+                iconTheme: {
+                  primary: '#22c55e',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#059669',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#dc2626',
+                  color: '#fff',
+                },
+              },
+              loading: {
+                duration: Infinity,
+                style: {
+                  background: '#3b82f6',
+                  color: '#fff',
                 },
               },
             }}
           />
-        </AuthProvider>
-      </GoogleOAuthProvider>
-    </QueryClientProvider>
+          
+          {/* React Query DevTools - apenas em desenvolvimento */}
+          {process.env.NODE_ENV === 'development' && (
+            <ReactQueryDevtools initialIsOpen={false} />
+          )}
+        </QueryClientProvider>
+      </SessionProvider>
+    </ErrorBoundary>
   );
 }
-
-export default MyApp;
-

@@ -6,19 +6,8 @@ import { signIn } from 'next-auth/react';
 import Layout from '../../components/Layout';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
 import { authService } from '../../lib/api';
+import { RegisterOrganizadorForm } from '../../types';
 import toast from 'react-hot-toast';
-
-interface RegisterForm {
-  nome: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  telefone: string;
-  userType: 'CLIENTE' | 'ORGANIZADOR';
-  nomeEmpresa?: string;
-  cnpj?: string;
-  acceptTerms: boolean;
-}
 
 const RegisterPage: React.FC = () => {
   const router = useRouter();
@@ -26,7 +15,7 @@ const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterOrganizadorForm>({
     defaultValues: {
       userType: 'CLIENTE',
     },
@@ -35,7 +24,7 @@ const RegisterPage: React.FC = () => {
   const userType = watch('userType');
   const password = watch('password');
 
-  const onSubmit = async (data: RegisterForm) => {
+  const onSubmit = async (data: RegisterOrganizadorForm) => {
     setIsLoading(true);
     
     try {
@@ -77,7 +66,10 @@ const RegisterPage: React.FC = () => {
         router.push(redirectUrl);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao criar conta');
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error?.message ||
+                          'Erro ao criar conta';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +80,7 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout title="Criar Conta - TourApp">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
@@ -171,6 +163,7 @@ const RegisterPage: React.FC = () => {
                   id="nome"
                   type="text"
                   className="form-input"
+                  placeholder="Digite seu nome completo"
                   {...register('nome', {
                     required: 'Nome é obrigatório',
                     minLength: {
@@ -180,7 +173,7 @@ const RegisterPage: React.FC = () => {
                   })}
                 />
                 {errors.nome && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
+                  <p className="form-error">{errors.nome.message}</p>
                 )}
               </div>
 
@@ -194,6 +187,7 @@ const RegisterPage: React.FC = () => {
                   type="email"
                   autoComplete="email"
                   className="form-input"
+                  placeholder="seu@email.com"
                   {...register('email', {
                     required: 'Email é obrigatório',
                     pattern: {
@@ -203,7 +197,7 @@ const RegisterPage: React.FC = () => {
                   })}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="form-error">{errors.email.message}</p>
                 )}
               </div>
 
@@ -219,10 +213,14 @@ const RegisterPage: React.FC = () => {
                   placeholder="(11) 99999-9999"
                   {...register('telefone', {
                     required: 'Telefone é obrigatório',
+                    pattern: {
+                      value: /^(\(?\d{2}\)?\s?)?(\d{4,5})-?(\d{4})$/,
+                      message: 'Telefone inválido',
+                    },
                   })}
                 />
                 {errors.telefone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.telefone.message}</p>
+                  <p className="form-error">{errors.telefone.message}</p>
                 )}
               </div>
 
@@ -237,12 +235,17 @@ const RegisterPage: React.FC = () => {
                       id="nomeEmpresa"
                       type="text"
                       className="form-input"
+                      placeholder="Digite o nome da sua empresa"
                       {...register('nomeEmpresa', {
                         required: userType === 'ORGANIZADOR' ? 'Nome da empresa é obrigatório' : false,
+                        minLength: {
+                          value: 2,
+                          message: 'Nome da empresa deve ter no mínimo 2 caracteres',
+                        },
                       })}
                     />
                     {errors.nomeEmpresa && (
-                      <p className="mt-1 text-sm text-red-600">{errors.nomeEmpresa.message}</p>
+                      <p className="form-error">{errors.nomeEmpresa.message}</p>
                     )}
                   </div>
 
@@ -255,8 +258,16 @@ const RegisterPage: React.FC = () => {
                       type="text"
                       className="form-input"
                       placeholder="00.000.000/0000-00"
-                      {...register('cnpj')}
+                      {...register('cnpj', {
+                        pattern: {
+                          value: /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/,
+                          message: 'CNPJ deve estar no formato XX.XXX.XXX/XXXX-XX',
+                        },
+                      })}
                     />
+                    {errors.cnpj && (
+                      <p className="form-error">{errors.cnpj.message}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -271,11 +282,16 @@ const RegisterPage: React.FC = () => {
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     className="form-input pr-10"
+                    placeholder="Digite uma senha segura"
                     {...register('password', {
                       required: 'Senha é obrigatória',
                       minLength: {
                         value: 6,
                         message: 'Senha deve ter no mínimo 6 caracteres',
+                      },
+                      pattern: {
+                        value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]/,
+                        message: 'Senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número',
                       },
                     })}
                   />
@@ -292,7 +308,7 @@ const RegisterPage: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="form-error">{errors.password.message}</p>
                 )}
               </div>
 
@@ -306,6 +322,7 @@ const RegisterPage: React.FC = () => {
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     className="form-input pr-10"
+                    placeholder="Digite a senha novamente"
                     {...register('confirmPassword', {
                       required: 'Confirmação de senha é obrigatória',
                       validate: value => value === password || 'Senhas não coincidem',
@@ -324,7 +341,7 @@ const RegisterPage: React.FC = () => {
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                  <p className="form-error">{errors.confirmPassword.message}</p>
                 )}
               </div>
 
@@ -340,17 +357,17 @@ const RegisterPage: React.FC = () => {
                 />
                 <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-900">
                   Aceito os{' '}
-                  <Link href="/termos" className="text-primary-600 hover:text-primary-500">
+                  <Link href="/termos" className="text-primary-600 hover:text-primary-500 underline">
                     termos de uso
                   </Link>{' '}
                   e{' '}
-                  <Link href="/privacidade" className="text-primary-600 hover:text-primary-500">
+                  <Link href="/privacidade" className="text-primary-600 hover:text-primary-500 underline">
                     política de privacidade
                   </Link>
                 </label>
               </div>
               {errors.acceptTerms && (
-                <p className="mt-1 text-sm text-red-600">{errors.acceptTerms.message}</p>
+                <p className="form-error">{errors.acceptTerms.message}</p>
               )}
             </div>
 
@@ -359,9 +376,16 @@ const RegisterPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full py-3"
               >
-                {isLoading ? 'Criando conta...' : 'Criar conta'}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Criando conta...
+                  </div>
+                ) : (
+                  'Criar conta'
+                )}
               </button>
             </div>
 
@@ -380,7 +404,8 @@ const RegisterPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                disabled={isLoading}
+                className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -391,6 +416,16 @@ const RegisterPage: React.FC = () => {
                 Continuar com Google
               </button>
             </div>
+
+            {/* Link para login */}
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Já tem uma conta?{' '}
+                <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500">
+                  Faça login
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
       </div>
@@ -399,4 +434,3 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
-

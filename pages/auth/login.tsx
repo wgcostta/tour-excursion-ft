@@ -1,101 +1,54 @@
 import React, { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
 import Layout from '../../components/Layout';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
-
-interface LoginForm {
-  email: string;
-  password: string;
-  userType: 'CLIENTE' | 'ORGANIZADOR';
-}
+import { LoginForm } from '../../types';
+import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<LoginForm>>({});
   
-  const [formData, setFormData] = useState<LoginForm>({
-    email: '',
-    password: '',
-    userType: 'CLIENTE',
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<LoginForm>({
+    defaultValues: {
+      userType: 'CLIENTE',
+    },
   });
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<LoginForm> = {};
+  const userType = watch('userType');
 
-    if (!formData.email) {
-      newErrors.email = 'Email é obrigatório';
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
-      newErrors.email = 'Email inválido';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Senha é obrigatória';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Senha deve ter no mínimo 6 caracteres';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Limpa o erro do campo quando o usuário começa a digitar
-    if (errors[name as keyof LoginForm]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined,
-      }));
-    }
-  };
-
-  const handleUserTypeChange = (userType: 'CLIENTE' | 'ORGANIZADOR') => {
-    setFormData(prev => ({
-      ...prev,
-      userType,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+  const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     
     try {
       const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        userType: formData.userType,
+        email: data.email,
+        password: data.password,
+        userType: data.userType,
         redirect: false,
       });
 
       if (result?.error) {
-        alert('Credenciais inválidas');
+        toast.error('Credenciais inválidas');
       } else {
-        alert('Login realizado com sucesso!');
+        // Obter a sessão atualizada para verificar o tipo de usuário
+        const session = await getSession();
+        
+        toast.success('Login realizado com sucesso!');
         
         // Redirecionar baseado no tipo de usuário
-        const redirectUrl = formData.userType === 'ORGANIZADOR' 
+        const redirectUrl = session?.userType === 'ORGANIZADOR' 
           ? '/organizador/dashboard' 
           : '/cliente/dashboard';
         
         router.push(redirectUrl);
       }
     } catch (error) {
-      alert('Erro ao fazer login');
+      toast.error('Erro ao fazer login');
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -107,7 +60,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout title="Login - TourApp">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
@@ -127,7 +80,7 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-4">
               {/* Tipo de Usuário */}
               <div>
@@ -136,23 +89,21 @@ const LoginPage: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    formData.userType === 'CLIENTE' 
+                    userType === 'CLIENTE' 
                       ? 'border-primary-600 bg-primary-50' 
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}>
                     <input
                       type="radio"
-                      name="userType"
                       value="CLIENTE"
-                      checked={formData.userType === 'CLIENTE'}
-                      onChange={() => handleUserTypeChange('CLIENTE')}
+                      {...register('userType', { required: true })}
                       className="sr-only"
                     />
                     <div className="flex items-center">
                       <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        formData.userType === 'CLIENTE' ? 'border-primary-600' : 'border-gray-300'
+                        userType === 'CLIENTE' ? 'border-primary-600' : 'border-gray-300'
                       }`}>
-                        {formData.userType === 'CLIENTE' && (
+                        {userType === 'CLIENTE' && (
                           <div className="w-2 h-2 rounded-full bg-primary-600"></div>
                         )}
                       </div>
@@ -161,23 +112,21 @@ const LoginPage: React.FC = () => {
                   </label>
                   
                   <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    formData.userType === 'ORGANIZADOR' 
+                    userType === 'ORGANIZADOR' 
                       ? 'border-primary-600 bg-primary-50' 
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}>
                     <input
                       type="radio"
-                      name="userType"
                       value="ORGANIZADOR"
-                      checked={formData.userType === 'ORGANIZADOR'}
-                      onChange={() => handleUserTypeChange('ORGANIZADOR')}
+                      {...register('userType', { required: true })}
                       className="sr-only"
                     />
                     <div className="flex items-center">
                       <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        formData.userType === 'ORGANIZADOR' ? 'border-primary-600' : 'border-gray-300'
+                        userType === 'ORGANIZADOR' ? 'border-primary-600' : 'border-gray-300'
                       }`}>
-                        {formData.userType === 'ORGANIZADOR' && (
+                        {userType === 'ORGANIZADOR' && (
                           <div className="w-2 h-2 rounded-full bg-primary-600"></div>
                         )}
                       </div>
@@ -194,16 +143,20 @@ const LoginPage: React.FC = () => {
                 </label>
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="form-input"
                   placeholder="seu@email.com"
+                  {...register('email', {
+                    required: 'Email é obrigatório',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Email inválido',
+                    },
+                  })}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                 )}
               </div>
 
@@ -215,13 +168,13 @@ const LoginPage: React.FC = () => {
                 <div className="relative">
                   <input
                     id="password"
-                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="form-input pr-10"
                     placeholder="Sua senha"
+                    {...register('password', {
+                      required: 'Senha é obrigatória',
+                    })}
                   />
                   <button
                     type="button"
@@ -236,7 +189,7 @@ const LoginPage: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                 )}
               </div>
             </div>
