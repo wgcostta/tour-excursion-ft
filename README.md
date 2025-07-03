@@ -407,7 +407,98 @@ Ajustes baseados no feedback
 O frontend está completo e pronto para produção, com todas as funcionalidades necessárias para validar o MVP em 4 semanas! 🚀
 
 
+# TourApp Frontend
 
+## Configuração Inicial
+
+1. **Clonar o repositório**
+```bash
+git clone https://github.com/seu-usuario/tourapp-frontend.git
+cd tourapp-frontend
+```
+
+2. **Instalar dependências**
+```bash
+npm install
+```
+
+3. **Configurar variáveis de ambiente**
+```bash
+cp .env.example .env.local
+# Editar .env.local com suas configurações
+```
+
+4. **Configurar Google OAuth**
+- Acessar https://console.developers.google.com
+- Criar novo projeto ou usar existente
+- Habilitar Google+ API
+- Criar credenciais OAuth 2.0
+- Adicionar domínios autorizados
+- Copiar Client ID para .env.local
+
+5. **Executar em desenvolvimento**
+```bash
+npm run dev
+```
+
+## Estrutura de Pastas
+
+```
+/components     # Componentes reutilizáveis
+/hooks         # Custom hooks
+/pages         # Páginas Next.js
+/services      # Serviços de API
+/styles        # Arquivos CSS
+/utils         # Funções utilitárias
+```
+
+## Endpoints do Backend
+
+Base URL: Configure em NEXT_PUBLIC_API_URL
+
+### Autenticação
+- POST /api/v1/auth/google - Login Google
+- GET /api/v1/auth/me - Dados do usuário
+- POST /api/v1/auth/refresh - Renovar token
+- POST /api/v1/auth/logout - Logout
+
+### Organizadores
+- GET /organizador/perfil - Perfil
+- GET /organizador/dashboard - Dashboard
+- GET,POST,PUT,DELETE /organizador/excursoes - CRUD Excursões
+
+### Clientes
+- GET /cliente/perfil - Perfil
+- GET /cliente/inscricoes - Inscrições
+
+### Público
+- GET /public/excursoes/{id} - Ver excursão
+- POST /public/excursoes/{id}/inscricoes - Inscrever
+
+### Pagamentos
+- POST /pagamentos/pix - Pagamento PIX
+- POST /pagamentos/cartao - Pagamento cartão
+
+## Deploy
+
+### Vercel
+```bash
+npm install -g vercel
+vercel --prod
+```
+
+### Railway
+```bash
+# Conectar repositório GitHub ao Railway
+# Configurar variáveis de ambiente no dashboard
+```
+
+## Troubleshooting
+
+1. **Erro de CORS**: Verificar configuração do backend
+2. **Token inválido**: Verificar configuração JWT
+3. **Upload falha**: Verificar configuração Cloudinary
+4. **Google OAuth**: Verificar domínios autorizados
 
 
 
