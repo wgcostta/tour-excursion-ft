@@ -64,11 +64,11 @@ const HomePage: React.FC = () => {
               Viaje com segurança, comodidade e preços justos.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/excursoes" className="btn-primary text-lg px-8 py-3">
+              <Link href="/excursoes" className="inline-flex items-center justify-center btn-primary text-lg px-8 py-3">
                 Ver Excursões
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-              <Link href="/auth/register" className="btn-outline text-lg px-8 py-3 bg-white text-primary-600 hover:bg-gray-100">
+              <Link href="/auth/register" className="inline-flex items-center justify-center btn-outline text-lg px-8 py-3 bg-white text-primary-600 hover:bg-gray-100 border border-white">
                 Cadastre-se Grátis
               </Link>
             </div>
@@ -172,10 +172,10 @@ const HomePage: React.FC = () => {
             Junte-se a milhares de viajantes que já descobriram o Brasil com o TourApp.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/excursoes" className="btn bg-white text-primary-600 hover:bg-gray-100 text-lg px-8 py-3">
+            <Link href="/excursoes" className="inline-flex items-center justify-center bg-white text-primary-600 hover:bg-gray-100 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
               Explorar Excursões
             </Link>
-            <Link href="/auth/register?type=organizador" className="btn-outline border-white text-white hover:bg-white hover:text-primary-600 text-lg px-8 py-3">
+            <Link href="/auth/register?type=organizador" className="inline-flex items-center justify-center border border-white text-white hover:bg-white hover:text-primary-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
               Tornar-se Organizador
             </Link>
           </div>
@@ -186,4 +186,3 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
-

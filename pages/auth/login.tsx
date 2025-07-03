@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
 import Layout from '../../components/Layout';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 interface LoginForm {
   email: string;
@@ -17,40 +15,88 @@ const LoginPage: React.FC = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<LoginForm>>({});
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<LoginForm>({
-    defaultValues: {
-      userType: 'CLIENTE',
-    },
+  const [formData, setFormData] = useState<LoginForm>({
+    email: '',
+    password: '',
+    userType: 'CLIENTE',
   });
 
-  const userType = watch('userType');
+  const validateForm = (): boolean => {
+    const newErrors: Partial<LoginForm> = {};
 
-  const onSubmit = async (data: LoginForm) => {
+    if (!formData.email) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Senha é obrigatória';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Senha deve ter no mínimo 6 caracteres';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    
+    // Limpa o erro do campo quando o usuário começa a digitar
+    if (errors[name as keyof LoginForm]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
+  };
+
+  const handleUserTypeChange = (userType: 'CLIENTE' | 'ORGANIZADOR') => {
+    setFormData(prev => ({
+      ...prev,
+      userType,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
     
     try {
       const result = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        userType: data.userType,
+        email: formData.email,
+        password: formData.password,
+        userType: formData.userType,
         redirect: false,
       });
 
       if (result?.error) {
-        toast.error('Credenciais inválidas');
+        alert('Credenciais inválidas');
       } else {
-        toast.success('Login realizado com sucesso!');
+        alert('Login realizado com sucesso!');
         
         // Redirecionar baseado no tipo de usuário
-        const redirectUrl = data.userType === 'ORGANIZADOR' 
+        const redirectUrl = formData.userType === 'ORGANIZADOR' 
           ? '/organizador/dashboard' 
           : '/cliente/dashboard';
         
         router.push(redirectUrl);
       }
     } catch (error) {
-      toast.error('Erro ao fazer login');
+      alert('Erro ao fazer login');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -81,28 +127,32 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               {/* Tipo de Usuário */}
               <div>
-                <label className="form-label">Tipo de Conta</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Conta
+                </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    userType === 'CLIENTE' 
+                    formData.userType === 'CLIENTE' 
                       ? 'border-primary-600 bg-primary-50' 
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}>
                     <input
                       type="radio"
+                      name="userType"
                       value="CLIENTE"
-                      {...register('userType', { required: true })}
+                      checked={formData.userType === 'CLIENTE'}
+                      onChange={() => handleUserTypeChange('CLIENTE')}
                       className="sr-only"
                     />
                     <div className="flex items-center">
                       <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        userType === 'CLIENTE' ? 'border-primary-600' : 'border-gray-300'
+                        formData.userType === 'CLIENTE' ? 'border-primary-600' : 'border-gray-300'
                       }`}>
-                        {userType === 'CLIENTE' && (
+                        {formData.userType === 'CLIENTE' && (
                           <div className="w-2 h-2 rounded-full bg-primary-600"></div>
                         )}
                       </div>
@@ -111,21 +161,23 @@ const LoginPage: React.FC = () => {
                   </label>
                   
                   <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    userType === 'ORGANIZADOR' 
+                    formData.userType === 'ORGANIZADOR' 
                       ? 'border-primary-600 bg-primary-50' 
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}>
                     <input
                       type="radio"
+                      name="userType"
                       value="ORGANIZADOR"
-                      {...register('userType', { required: true })}
+                      checked={formData.userType === 'ORGANIZADOR'}
+                      onChange={() => handleUserTypeChange('ORGANIZADOR')}
                       className="sr-only"
                     />
                     <div className="flex items-center">
                       <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        userType === 'ORGANIZADOR' ? 'border-primary-600' : 'border-gray-300'
+                        formData.userType === 'ORGANIZADOR' ? 'border-primary-600' : 'border-gray-300'
                       }`}>
-                        {userType === 'ORGANIZADOR' && (
+                        {formData.userType === 'ORGANIZADOR' && (
                           <div className="w-2 h-2 rounded-full bg-primary-600"></div>
                         )}
                       </div>
@@ -137,45 +189,39 @@ const LoginPage: React.FC = () => {
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="form-label">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   autoComplete="email"
-                  className="form-input"
-                  {...register('email', {
-                    required: 'Email é obrigatório',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Email inválido',
-                    },
-                  })}
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="seu@email.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                 )}
               </div>
 
               {/* Senha */}
               <div>
-                <label htmlFor="password" className="form-label">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Senha
                 </label>
                 <div className="relative">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    className="form-input pr-10"
-                    {...register('password', {
-                      required: 'Senha é obrigatória',
-                      minLength: {
-                        value: 6,
-                        message: 'Senha deve ter no mínimo 6 caracteres',
-                      },
-                    })}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Sua senha"
                   />
                   <button
                     type="button"
@@ -190,7 +236,7 @@ const LoginPage: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                 )}
               </div>
             </div>
@@ -249,4 +295,3 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
