@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { Calendar, MapPin, Clock, Users, DollarSign, FileText } from 'lucide-react';
 import { ExcursaoForm as ExcursaoFormType, Excursao } from '../../types';
 import ImageUpload from '../Common/ImageUpload';
+import ErrorTooltip from '../Common/ErrorTooltip';
+import { useFormErrorTooltip } from '../../hooks/useErrorTooltip';
 import toast from 'react-hot-toast';
 
 interface ExcursaoFormProps {
@@ -19,6 +21,13 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
   isLoading = false 
 }) => {
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const { 
+    showFieldError, 
+    hideFieldError, 
+    clearAllErrors, 
+    isFieldErrorVisible, 
+    getFieldError 
+  } = useFormErrorTooltip();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ExcursaoFormType>({
     defaultValues: excursao ? {
@@ -45,6 +54,8 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
 
   const handleFormSubmit = async (data: ExcursaoFormType) => {
     try {
+      clearAllErrors();
+      
       const formData = new FormData();
       
       // Append form fields
@@ -69,15 +80,44 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
       formData.append('aceitaCartao', data.aceitaCartao.toString());
       
       // Append images
-      uploadedImages.forEach((image, index) => {
+      uploadedImages.forEach((image) => {
         formData.append('imagens', image);
       });
 
       await onSubmit(formData);
     } catch (error: any) {
       console.error('Erro ao submeter formulário:', error);
-      toast.error('Erro ao salvar excursão');
+      
+      // Tratar erros de validação da API
+      if (error.response?.data?.validationErrors) {
+        Object.entries(error.response.data.validationErrors).forEach(([field, message]) => {
+          showFieldError(field, message as string);
+        });
+      } else {
+        toast.error('Erro ao salvar excursão');
+      }
     }
+  };
+
+  const handleFieldFocus = (fieldName: keyof ExcursaoFormType) => {
+    const errorMessage = errors[fieldName]?.message || getFieldError(fieldName);
+    if (errorMessage) {
+      showFieldError(fieldName, errorMessage);
+    }
+  };
+
+  const handleFieldBlur = (fieldName: keyof ExcursaoFormType) => {
+    setTimeout(() => {
+      hideFieldError(fieldName);
+    }, 150);
+  };
+
+  const hasFieldError = (fieldName: keyof ExcursaoFormType) => {
+    return !!(errors[fieldName] || isFieldErrorVisible(fieldName));
+  };
+
+  const getErrorMessage = (fieldName: keyof ExcursaoFormType) => {
+    return errors[fieldName]?.message || getFieldError(fieldName);
   };
 
   return (
@@ -90,74 +130,98 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 relative">
             <label className="form-label">
               Título da Excursão
             </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Ex: Excursão para Campos do Jordão"
-              {...register('titulo', {
-                required: 'Título é obrigatório',
-                minLength: { value: 5, message: 'Título deve ter pelo menos 5 caracteres' },
-              })}
-            />
-            {errors.titulo && (
-              <p className="mt-1 text-sm text-red-600">{errors.titulo.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('titulo')}
+              isVisible={isFieldErrorVisible('titulo')}
+              onClose={() => hideFieldError('titulo')}
+              position="bottom"
+            >
+              <input
+                type="text"
+                className={`form-input ${hasFieldError('titulo') ? 'error-border' : ''}`}
+                placeholder="Ex: Excursão para Campos do Jordão"
+                {...register('titulo', {
+                  required: 'Título é obrigatório',
+                  minLength: { value: 5, message: 'Título deve ter pelo menos 5 caracteres' },
+                })}
+                onFocus={() => handleFieldFocus('titulo')}
+                onBlur={() => handleFieldBlur('titulo')}
+              />
+            </ErrorTooltip>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="form-label">
               <MapPin className="inline h-4 w-4 mr-1" />
               Local de Saída
             </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Ex: Terminal Rodoviário de São Paulo"
-              {...register('localSaida', {
-                required: 'Local de saída é obrigatório',
-              })}
-            />
-            {errors.localSaida && (
-              <p className="mt-1 text-sm text-red-600">{errors.localSaida.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('localSaida')}
+              isVisible={isFieldErrorVisible('localSaida')}
+              onClose={() => hideFieldError('localSaida')}
+              position="bottom"
+            >
+              <input
+                type="text"
+                className={`form-input ${hasFieldError('localSaida') ? 'error-border' : ''}`}
+                placeholder="Ex: Terminal Rodoviário de São Paulo"
+                {...register('localSaida', {
+                  required: 'Local de saída é obrigatório',
+                })}
+                onFocus={() => handleFieldFocus('localSaida')}
+                onBlur={() => handleFieldBlur('localSaida')}
+              />
+            </ErrorTooltip>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="form-label">
               <MapPin className="inline h-4 w-4 mr-1" />
               Destino
             </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Ex: Campos do Jordão, SP"
-              {...register('localDestino', {
-                required: 'Destino é obrigatório',
-              })}
-            />
-            {errors.localDestino && (
-              <p className="mt-1 text-sm text-red-600">{errors.localDestino.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('localDestino')}
+              isVisible={isFieldErrorVisible('localDestino')}
+              onClose={() => hideFieldError('localDestino')}
+              position="bottom"
+            >
+              <input
+                type="text"
+                className={`form-input ${hasFieldError('localDestino') ? 'error-border' : ''}`}
+                placeholder="Ex: Campos do Jordão, SP"
+                {...register('localDestino', {
+                  required: 'Destino é obrigatório',
+                })}
+                onFocus={() => handleFieldFocus('localDestino')}
+                onBlur={() => handleFieldBlur('localDestino')}
+              />
+            </ErrorTooltip>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 relative">
             <label className="form-label">Descrição</label>
-            <textarea
-              rows={4}
-              className="form-input"
-              placeholder="Descreva os detalhes da excursão, o que está incluído, itinerário, etc."
-              {...register('descricao', {
-                required: 'Descrição é obrigatória',
-                minLength: { value: 50, message: 'Descrição deve ter pelo menos 50 caracteres' },
-              })}
-            />
-            {errors.descricao && (
-              <p className="mt-1 text-sm text-red-600">{errors.descricao.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('descricao')}
+              isVisible={isFieldErrorVisible('descricao')}
+              onClose={() => hideFieldError('descricao')}
+              position="top"
+            >
+              <textarea
+                rows={4}
+                className={`form-input ${hasFieldError('descricao') ? 'error-border' : ''}`}
+                placeholder="Descreva os detalhes da excursão, o que está incluído, itinerário, etc."
+                {...register('descricao', {
+                  required: 'Descrição é obrigatória',
+                  minLength: { value: 50, message: 'Descrição deve ter pelo menos 50 caracteres' },
+                })}
+                onFocus={() => handleFieldFocus('descricao')}
+                onBlur={() => handleFieldBlur('descricao')}
+              />
+            </ErrorTooltip>
           </div>
         </div>
       </div>
@@ -170,24 +234,30 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="relative">
             <label className="form-label">
               Data e Hora de Saída
             </label>
-            <input
-              type="datetime-local"
-              className="form-input"
-              min={new Date().toISOString().slice(0, 16)}
-              {...register('dataSaida', {
-                required: 'Data de saída é obrigatória',
-              })}
-            />
-            {errors.dataSaida && (
-              <p className="mt-1 text-sm text-red-600">{errors.dataSaida.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('dataSaida')}
+              isVisible={isFieldErrorVisible('dataSaida')}
+              onClose={() => hideFieldError('dataSaida')}
+              position="bottom"
+            >
+              <input
+                type="datetime-local"
+                className={`form-input ${hasFieldError('dataSaida') ? 'error-border' : ''}`}
+                min={new Date().toISOString().slice(0, 16)}
+                {...register('dataSaida', {
+                  required: 'Data de saída é obrigatória',
+                })}
+                onFocus={() => handleFieldFocus('dataSaida')}
+                onBlur={() => handleFieldBlur('dataSaida')}
+              />
+            </ErrorTooltip>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="form-label">
               Data e Hora de Retorno (Opcional)
             </label>
@@ -209,44 +279,56 @@ const ExcursaoForm: React.FC<ExcursaoFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="relative">
             <label className="form-label">
               Preço por Pessoa (R$)
             </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className="form-input"
-              placeholder="0,00"
-              {...register('preco', {
-                required: 'Preço é obrigatório',
-                min: { value: 0.01, message: 'Preço deve ser maior que zero' },
-              })}
-            />
-            {errors.preco && (
-              <p className="mt-1 text-sm text-red-600">{errors.preco.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('preco')}
+              isVisible={isFieldErrorVisible('preco')}
+              onClose={() => hideFieldError('preco')}
+              position="bottom"
+            >
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={`form-input ${hasFieldError('preco') ? 'error-border' : ''}`}
+                placeholder="0,00"
+                {...register('preco', {
+                  required: 'Preço é obrigatório',
+                  min: { value: 0.01, message: 'Preço deve ser maior que zero' },
+                })}
+                onFocus={() => handleFieldFocus('preco')}
+                onBlur={() => handleFieldBlur('preco')}
+              />
+            </ErrorTooltip>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="form-label">
               <Users className="inline h-4 w-4 mr-1" />
               Total de Vagas
             </label>
-            <input
-              type="number"
-              min="1"
-              className="form-input"
-              placeholder="50"
-              {...register('vagasTotal', {
-                required: 'Total de vagas é obrigatório',
-                min: { value: 1, message: 'Deve ter pelo menos 1 vaga' },
-              })}
-            />
-            {errors.vagasTotal && (
-              <p className="mt-1 text-sm text-red-600">{errors.vagasTotal.message}</p>
-            )}
+            <ErrorTooltip
+              message={getErrorMessage('vagasTotal')}
+              isVisible={isFieldErrorVisible('vagasTotal')}
+              onClose={() => hideFieldError('vagasTotal')}
+              position="bottom"
+            >
+              <input
+                type="number"
+                min="1"
+                className={`form-input ${hasFieldError('vagasTotal') ? 'error-border' : ''}`}
+                placeholder="50"
+                {...register('vagasTotal', {
+                  required: 'Total de vagas é obrigatório',
+                  min: { value: 1, message: 'Deve ter pelo menos 1 vaga' },
+                })}
+                onFocus={() => handleFieldFocus('vagasTotal')}
+                onBlur={() => handleFieldBlur('vagasTotal')}
+              />
+            </ErrorTooltip>
           </div>
         </div>
 

@@ -1,4 +1,3 @@
-// components/Common/ErrorTooltip.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -9,7 +8,6 @@ interface ErrorTooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
   children?: React.ReactNode;
-  type?: 'error' | 'warning' | 'info';
 }
 
 const ErrorTooltip: React.FC<ErrorTooltipProps> = ({
@@ -18,8 +16,7 @@ const ErrorTooltip: React.FC<ErrorTooltipProps> = ({
   onClose,
   position = 'bottom',
   className = '',
-  children,
-  type = 'error'
+  children
 }) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -68,54 +65,19 @@ const ErrorTooltip: React.FC<ErrorTooltipProps> = ({
   };
 
   const getArrowClasses = () => {
-    const baseArrowSize = 'w-0 h-0 border-4';
-    
     switch (position) {
       case 'top':
-        return `${baseArrowSize} top-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent ${getArrowColor()}`;
+        return 'top-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-red-600';
       case 'left':
-        return `${baseArrowSize} left-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent ${getArrowColor()}`;
+        return 'left-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-red-600';
       case 'right':
-        return `${baseArrowSize} right-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent ${getArrowColor()}`;
+        return 'right-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-red-600';
       default: // bottom
-        return `${baseArrowSize} bottom-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent ${getArrowColor()}`;
+        return 'bottom-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-red-600';
     }
   };
 
-  const getArrowColor = () => {
-    switch (type) {
-      case 'warning':
-        return 'border-t-yellow-600 border-b-yellow-600 border-l-yellow-600 border-r-yellow-600';
-      case 'info':
-        return 'border-t-blue-600 border-b-blue-600 border-l-blue-600 border-r-blue-600';
-      default: // error
-        return 'border-t-red-600 border-b-red-600 border-l-red-600 border-r-red-600';
-    }
-  };
-
-  const getTooltipColors = () => {
-    switch (type) {
-      case 'warning':
-        return 'bg-yellow-600 text-white';
-      case 'info':
-        return 'bg-blue-600 text-white';
-      default: // error
-        return 'bg-red-600 text-white';
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'warning':
-        return <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />;
-      case 'info':
-        return <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />;
-      default:
-        return <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />;
-    }
-  };
-
-  if (!isVisible && !isAnimating) return children ? <>{children}</> : null;
+  if (!isVisible && !isAnimating) return null;
 
   return (
     <div className={`relative inline-block ${className}`}>
@@ -131,12 +93,12 @@ const ErrorTooltip: React.FC<ErrorTooltipProps> = ({
           aria-live="polite"
         >
           {/* Arrow */}
-          <div className={`absolute ${getArrowClasses()}`} />
+          <div className={`absolute w-0 h-0 border-4 ${getArrowClasses()}`} />
           
           {/* Tooltip content */}
-          <div className={`${getTooltipColors()} text-sm rounded-lg shadow-lg p-3 max-w-xs min-w-48`}>
+          <div className="bg-red-600 text-white text-sm rounded-lg shadow-lg p-3 max-w-xs min-w-48">
             <div className="flex items-start space-x-2">
-              {getIcon()}
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-white">{message}</p>
               </div>
@@ -145,8 +107,8 @@ const ErrorTooltip: React.FC<ErrorTooltipProps> = ({
                   e.stopPropagation();
                   onClose();
                 }}
-                className="flex-shrink-0 text-white hover:text-gray-200 transition-colors duration-200 p-0.5 hover:bg-white hover:bg-opacity-20 rounded"
-                aria-label="Fechar tooltip"
+                className="flex-shrink-0 text-white hover:text-red-200 transition-colors duration-200"
+                aria-label="Fechar tooltip de erro"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -6,12 +6,22 @@ import { useForm } from 'react-hook-form';
 import Layout from '../../components/Layout';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
 import { LoginForm } from '../../types';
+import ErrorTooltip from '../../components/Common/ErrorTooltip';
+import { useFormErrorTooltip } from '../../hooks/useErrorTooltip';
 import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { 
+    showFieldError, 
+    hideFieldError, 
+    clearAllErrors, 
+    isFieldErrorVisible, 
+    getFieldError 
+  } = useFormErrorTooltip();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<LoginForm>({
     defaultValues: {
@@ -25,6 +35,8 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
+      clearAllErrors();
+      
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
@@ -33,7 +45,14 @@ const LoginPage: React.FC = () => {
       });
 
       if (result?.error) {
-        toast.error('Credenciais inválidas');
+        // Simular erros específicos por campo para demonstração
+        if (result.error.includes('email')) {
+          showFieldError('email', 'E-mail não encontrado');
+        } else if (result.error.includes('password')) {
+          showFieldError('password', 'Senha incorreta');
+        } else {
+          toast.error('Credenciais inválidas');
+        }
       } else {
         // Obter a sessão atualizada para verificar o tipo de usuário
         const session = await getSession();
@@ -59,6 +78,27 @@ const LoginPage: React.FC = () => {
     signIn('google', { callbackUrl: '/auth/complete-profile' });
   };
 
+  const handleFieldFocus = (fieldName: keyof LoginForm) => {
+    const errorMessage = errors[fieldName]?.message || getFieldError(fieldName);
+    if (errorMessage) {
+      showFieldError(fieldName, errorMessage);
+    }
+  };
+
+  const handleFieldBlur = (fieldName: keyof LoginForm) => {
+    setTimeout(() => {
+      hideFieldError(fieldName);
+    }, 150);
+  };
+
+  const hasFieldError = (fieldName: keyof LoginForm) => {
+    return !!(errors[fieldName] || isFieldErrorVisible(fieldName));
+  };
+
+  const getErrorMessage = (fieldName: keyof LoginForm) => {
+    return errors[fieldName]?.message || getFieldError(fieldName);
+  };
+
   return (
     <Layout title="Login - TourApp">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -72,93 +112,9 @@ const LoginPage: React.FC = () => {
             <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
               Entre na sua conta
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Ou{' '}
-              <Link href="/auth/register" className="font-medium text-primary-600 hover:text-primary-500">
-                crie uma nova conta
-              </Link>
-            </p>
-          </div>
-
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="space-y-4">
-              {/* Tipo de Usuário */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Conta
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    userType === 'CLIENTE' 
-                      ? 'border-primary-600 bg-primary-50' 
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      value="CLIENTE"
-                      {...register('userType', { required: true })}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        userType === 'CLIENTE' ? 'border-primary-600' : 'border-gray-300'
-                      }`}>
-                        {userType === 'CLIENTE' && (
-                          <div className="w-2 h-2 rounded-full bg-primary-600"></div>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">Cliente</span>
-                    </div>
-                  </label>
-                  
-                  <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    userType === 'ORGANIZADOR' 
-                      ? 'border-primary-600 bg-primary-50' 
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      value="ORGANIZADOR"
-                      {...register('userType', { required: true })}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center ${
-                        userType === 'ORGANIZADOR' ? 'border-primary-600' : 'border-gray-300'
-                      }`}>
-                        {userType === 'ORGANIZADOR' && (
-                          <div className="w-2 h-2 rounded-full bg-primary-600"></div>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">Organizador</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Botão de Submit */}
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Entrando...' : 'Entrar'}
-              </button>
-            </div>
-
-            {/* Divisor */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Ou continue com</span>
-              </div>
-            </div>
-
+            
+            <div className="flex justify-center">
+ 
             {/* Login com Google */}
             <div>
               <button
@@ -174,6 +130,23 @@ const LoginPage: React.FC = () => {
                 </svg>
                 Continuar com Google
               </button>
+            </div>
+            </div>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Ou{' '}
+              <Link href="/auth/register" className="font-medium text-primary-600 hover:text-primary-500">
+                crie uma nova conta
+              </Link>
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+
+            {/* Divisor */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
             </div>
           </form>
         </div>
