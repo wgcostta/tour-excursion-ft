@@ -15,6 +15,16 @@ interface CustomUser {
   needsProfileCompletion?: boolean;
 }
 
+// Função para obter a URL da API
+const getApiUrl = () => {
+  // No servidor (SSR), usar a URL interna
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  }
+  // No cliente, usar a URL pública
+  return process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+};
+
 // Configuração do NextAuth
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -32,8 +42,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          const apiUrl = getApiUrl();
+          console.log('🔗 Fazendo login via:', `${apiUrl}/auth/login`);
+          
           // Chamada para a API de login do backend
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
+          const response = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -94,10 +107,12 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
         try {
+          const apiUrl = getApiUrl();
           console.log('🔄 Tentando autenticar com Google no backend');
+          console.log('🔗 URL da API:', `${apiUrl}/auth/google`);
           
           // Chamar nossa API para verificar/criar usuário com Google
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`, {
+          const response = await fetch(`${apiUrl}/auth/google`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -110,6 +125,7 @@ export const authOptions: NextAuthOptions = {
             }),
           });
 
+          console.log(response)
           const data = await response.json();
           console.log('📨 Resposta do backend Google auth:', { 
             status: response.status, 
@@ -130,7 +146,7 @@ export const authOptions: NextAuthOptions = {
             // ❓ USUÁRIO NÃO EXISTE OU PERFIL INCOMPLETO
             console.log('❓ Usuário precisa completar perfil');
             user.needsProfileCompletion = true;
-            user.accessToken = data.data?.tempToken || account.access_token; // Token temporário do backend
+            user.accessToken = data.data?.token || data.data?.tempToken || account.access_token; // Token temporário do backend
             user.refreshToken = undefined;
             user.userType = undefined;
             return true; // Permitir login mas marcar como incompleto
@@ -162,7 +178,8 @@ export const authOptions: NextAuthOptions = {
       if (token.refreshToken && token.accessToken && !token.needsProfileCompletion && 
           Date.now() > (token.exp as number) * 1000 - 60000) {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`, {
+          const apiUrl = getApiUrl();
+          const response = await fetch(`${apiUrl}/auth/refresh`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -2,7 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    domains: [
+      'localhost',
+      'lh3.googleusercontent.com', // Google Images
+      'lh4.googleusercontent.com', // Google Images
+      'lh5.googleusercontent.com', // Google Images
+      'lh6.googleusercontent.com', // Google Images
+    ],
   },
   // Desabilita otimizações que dependem do critters
   experimental: {

@@ -27,8 +27,7 @@ export default function Document() {
         <meta name="theme-color" content="#2563eb" />
         <meta name="msapplication-TileColor" content="#2563eb" />
         
-        {/* Manifest */}
-        <link rel="manifest" href="/site.webmanifest" />
+
         
         {/* Apple touch icon */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
