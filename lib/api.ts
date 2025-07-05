@@ -1,9 +1,8 @@
-
 // ARQUIVO: lib/api.ts - ATUALIZADO PARA USAR O INTERCEPTOR
 import axios, { AxiosResponse } from 'axios';
 import { getSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 // Create axios instance
 const api = axios.create({
@@ -13,10 +12,67 @@ const api = axios.create({
   },
 });
 
-// NOTA: Os interceptors são configurados automaticamente pelo ErrorProvider
-// Não precisa mais configurá-los aqui!
+// Função utilitária para obter token de autenticação
+const getAuthToken = async (): Promise<string | null> => {
+  // Verificar se estamos no browser
+  if (typeof window === 'undefined') return null;
 
-// Seus tipos existentes permanecem iguais...
+  // Primeiro, tentar localStorage
+  const localToken = localStorage.getItem('token');
+  if (localToken) {
+    return localToken.startsWith('Bearer ') ? localToken : `Bearer ${localToken}`;
+  }
+
+  // Depois, tentar session do NextAuth
+  try {
+    const session = await getSession();
+    if (session?.accessToken) {
+      return session.accessToken.startsWith('Bearer ') 
+        ? session.accessToken 
+        : `Bearer ${session.accessToken}`;
+    }
+  } catch (error) {
+    console.warn('Erro ao obter sessão:', error);
+  }
+
+  return null;
+};
+
+// Configurar interceptor de request para adicionar token automaticamente
+api.interceptors.request.use(
+  async (config) => {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers.Authorization = token;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Configurar interceptor de response para tratar erros 401
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Limpar token inválido
+      localStorage.removeItem('token');
+      
+      // Se não for uma rota de autenticação, redirecionar
+      if (!error.config?.url?.includes('/auth/')) {
+        window.location.href = '/auth/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// NOTA: Os interceptors são configurados automaticamente pelo ErrorProvider
+// Mas mantemos essa configuração básica para garantir funcionalidade
+
+// Tipos existentes permanecem iguais...
 export interface Usuario {
   id: string;
   nome: string;
@@ -28,10 +84,6 @@ export interface Usuario {
   createdAt: string;
   updatedAt: string;
 }
-
-// ... resto dos tipos permanecem iguais
-
-// Seus services agora são ainda mais simples!
 
 export interface Cliente extends Usuario {
   pushToken?: string;
@@ -169,16 +221,40 @@ export const authService = {
     return api.post('/auth/cadastro/organizador', data);
   },
 
+  // Método corrigido para completar perfil do Google
   completeGoogleProfile: async (data: {
-    email: string;
-    nome: string;
-    avatar?: string;
     tipoUsuario: 'CLIENTE' | 'ORGANIZADOR';
+    nome: string;
     telefone: string;
     nomeEmpresa?: string;
     cnpj?: string;
+    descricao?: string;
   }): Promise<AxiosResponse<ApiResponse<any>>> => {
-    return api.post('/auth/complete-profile', data);
+    try {
+      console.log('🔧 Completando perfil Google:', data);
+      
+      // Garantir que o token seja obtido
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado');
+      }
+
+      console.log('✅ Token obtido para complete-profile');
+
+      // Fazer requisição com token explícito
+      const response = await api.post('/auth/complete-profile', data, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Perfil completado com sucesso');
+      return response;
+    } catch (error) {
+      console.error('❌ Erro ao completar perfil:', error);
+      throw error;
+    }
   },
 
   refreshToken: async (refreshToken: string): Promise<AxiosResponse<any>> => {
@@ -189,7 +265,6 @@ export const authService = {
     return api.get('/auth/me');
   },
 };
-
 
 export const excursoesService = {
   criarExcursao: async (formData: FormData): Promise<AxiosResponse<any>> => {
@@ -374,6 +449,26 @@ export const formatDateTime = (date: string): string => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+// Função de debug para verificar estado da autenticação
+export const debugAuthToken = async () => {
+  const token = await getAuthToken();
+  console.log('🔍 Debug do token:', {
+    hasToken: !!token,
+    tokenPreview: token ? token.substring(0, 30) + '...' : 'null',
+    localStorage: typeof window !== 'undefined' ? (localStorage.getItem('token') ? 'exists' : 'null') : 'server',
+    sessionToken: (await getSession())?.accessToken ? 'exists' : 'null'
+  });
+  return token;
+};
+
+// Função para limpar tokens (logout)
+export const clearAuthTokens = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+    console.log('🧹 Tokens limpos');
+  }
 };
 
 export default api;

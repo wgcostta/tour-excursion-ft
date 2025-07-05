@@ -1,4 +1,3 @@
-
 // ARQUIVO: lib/apiInterceptors.ts - VERSÃO CORRIGIDA
 import axios from 'axios';
 import { getSession, signOut } from 'next-auth/react';
@@ -14,19 +13,37 @@ export const setupApiInterceptors = () => {
   // Request interceptor - adicionar token
   axios.interceptors.request.use(
     async (config) => {
+      console.log('🔧 Request interceptor executado para:', config.url);
+      
+      // Primeiro, tentar obter token do localStorage
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        console.log('✅ Token encontrado no localStorage');
+        // Garantir que o token tenha o prefixo Bearer
+        const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        config.headers.Authorization = formattedToken;
+        console.log('🔑 Token adicionado ao header:', formattedToken.substring(0, 20) + '...');
+      } else {
+        // Se não houver token no localStorage, tentar session do NextAuth
         const session = await getSession();
-    const token = localStorage.getItem('token');
-
-    if(!!token){
-      console.log("token-interceptor", token)
-      config.headers.Authorization = token;
-    } else     if (session?.accessToken) {
-      console.log("{session.accessToken", session.accessToken)
-          config.headers.Authorization = `Bearer ${session.accessToken}`;
+        
+        if (session?.accessToken) {
+          console.log('✅ Token encontrado na sessão NextAuth');
+          const formattedToken = session.accessToken.startsWith('Bearer ') 
+            ? session.accessToken 
+            : `Bearer ${session.accessToken}`;
+          config.headers.Authorization = formattedToken;
+          console.log('🔑 Token da sessão adicionado ao header:', formattedToken.substring(0, 20) + '...');
+        } else {
+          console.log('❌ Nenhum token encontrado');
+        }
       }
+      
       return config;
     },
     (error) => {
+      console.error('❌ Erro no request interceptor:', error);
       return Promise.reject(error);
     }
   );
@@ -38,6 +55,12 @@ export const setupApiInterceptors = () => {
       return response;
     },
     async (error) => {
+      console.log('🔥 Response interceptor - erro capturado:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        message: error.response?.data?.message || error.message
+      });
+
       // Erros específicos que não devem mostrar toast
       const silentErrors = [
         '/auth/refresh', // Refresh token expirado
@@ -48,12 +71,19 @@ export const setupApiInterceptors = () => {
         error.config?.url?.includes(path)
       );
 
-      // Erro 401 - redirecionar para login (apenas no cliente)
+      // Erro 401 - token inválido ou expirado
       if (error.response?.status === 401 && typeof window !== 'undefined') {
-        //const { signOut } = await import('next-auth/react');
-        //await signOut({ redirect: false });
-        //window.location.href = '/auth/login';
-        console.log(error.response)
+        console.log('🚨 Erro 401 detectado - token inválido');
+        
+        // Limpar tokens inválidos
+        localStorage.removeItem('token');
+        
+        // Se não for uma rota de autenticação, redirecionar
+        if (!error.config?.url?.includes('/auth/')) {
+          console.log('🔄 Redirecionando para login');
+          window.location.href = '/auth/login';
+        }
+        
         return Promise.reject(error);
       }
 
@@ -71,4 +101,13 @@ export const setupApiInterceptors = () => {
 
   // Marcar que os interceptors foram configurados
   axios.defaults.headers.common['X-Interceptors-Configured'] = 'true';
+  console.log('✅ Interceptors configurados com sucesso');
+};
+
+// Função para limpar configurações (útil para testes)
+export const clearApiInterceptors = () => {
+  axios.interceptors.request.clear();
+  axios.interceptors.response.clear();
+  delete axios.defaults.headers.common['X-Interceptors-Configured'];
+  console.log('🧹 Interceptors limpos');
 };
