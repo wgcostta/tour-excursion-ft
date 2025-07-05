@@ -1,3 +1,5 @@
+
+// ARQUIVO: lib/api.ts - ATUALIZADO PARA USAR O INTERCEPTOR
 import axios, { AxiosResponse } from 'axios';
 import { getSession } from 'next-auth/react';
 
@@ -11,33 +13,10 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  async (config) => {
-    const session = await getSession();
-    if (session?.accessToken) {
-      config.headers.Authorization = `Bearer ${session.accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// NOTA: Os interceptors são configurados automaticamente pelo ErrorProvider
+// Não precisa mais configurá-los aqui!
 
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized - redirect to login
-      window.location.href = '/auth/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Types
+// Seus tipos existentes permanecem iguais...
 export interface Usuario {
   id: string;
   nome: string;
@@ -49,6 +28,10 @@ export interface Usuario {
   createdAt: string;
   updatedAt: string;
 }
+
+// ... resto dos tipos permanecem iguais
+
+// Seus services agora são ainda mais simples!
 
 export interface Cliente extends Usuario {
   pushToken?: string;
@@ -207,9 +190,10 @@ export const authService = {
   },
 };
 
-// Excursões Service
+
 export const excursoesService = {
-  criarExcursao: async (formData: FormData): Promise<AxiosResponse<ApiResponse<Excursao>>> => {
+  criarExcursao: async (formData: FormData): Promise<AxiosResponse<any>> => {
+    // Erro automaticamente interceptado e mostrado como tooltip
     return api.post('/organizador/excursoes', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -217,20 +201,15 @@ export const excursoesService = {
     });
   },
 
-  listarExcursoes: async (params?: {
-    status?: string;
-    page?: number;
-    size?: number;
-    search?: string;
-  }): Promise<AxiosResponse<ApiResponse<PageResponse<Excursao>>>> => {
+  listarExcursoes: async (params?: any): Promise<AxiosResponse<any>> => {
     return api.get('/organizador/excursoes', { params });
   },
 
-  obterExcursao: async (id: string): Promise<AxiosResponse<ApiResponse<Excursao>>> => {
+  obterExcursao: async (id: string): Promise<AxiosResponse<any>> => {
     return api.get(`/organizador/excursoes/${id}`);
   },
 
-  atualizarExcursao: async (id: string, formData: FormData): Promise<AxiosResponse<ApiResponse<Excursao>>> => {
+  atualizarExcursao: async (id: string, formData: FormData): Promise<AxiosResponse<any>> => {
     return api.put(`/organizador/excursoes/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
