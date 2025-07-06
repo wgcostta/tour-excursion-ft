@@ -222,11 +222,10 @@ export const authOptions: NextAuthOptions = {
         return `${baseUrl}/auth/complete-profile?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&image=${encodeURIComponent(image)}`;
       }
       
-      // CORREÇÃO: Em vez de redirecionar para /dashboard genérico,
       // deixar o useAuth.redirectToDashboard() fazer o trabalho
       if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/dashboard`) {
         // Retornar para a home e deixar o useAuth redirecionar corretamente
-        return baseUrl;
+        return `${baseUrl}/excursoes`
       }
       
       if (url.startsWith(baseUrl)) {
