@@ -65,14 +65,14 @@ export const authOptions: NextAuthOptions = {
           const data = await response.json();
 
           // Retorna o usuário se a autenticação for bem-sucedida
-          if (data.success && data.data) {
+          if (data.success && data) {
             return {
-              id: data.data.userId || data.data.id,
-              email: data.data.email,
-              name: data.data.name || data.data.nome,
-              userType: data.data.tipoUsuario || credentials.userType as 'CLIENTE' | 'ORGANIZADOR',
-              accessToken: data.data.token,
-              refreshToken: data.data.refreshToken,
+              id: data?.userId || data.id,
+              email: data.email,
+              name: data?.name || data.nome,
+              userType: data.tipoUsuario || credentials.userType as 'CLIENTE' | 'ORGANIZADOR',
+              accessToken: data.token,
+              refreshToken: data.refreshToken,
               needsProfileCompletion: false,
             };
           }
@@ -135,10 +135,10 @@ export const authOptions: NextAuthOptions = {
           if (response.ok && data.success) {
             // ✅ USUÁRIO JÁ EXISTE E ESTÁ COMPLETO
             console.log('✅ Usuário autenticado com sucesso');
-            user.id = data.data.userId || data.data.id;
-            user.userType = data.data.tipoUsuario;
-            user.accessToken = data.data.token;
-            user.refreshToken = data.data.refreshToken;
+            user.id = data?.userId || data.id;
+            user.userType = data.tipoUsuario;
+            user.accessToken = data.token;
+            user.refreshToken = data.refreshToken;
             user.needsProfileCompletion = false;
             return true;
           } 
@@ -146,7 +146,7 @@ export const authOptions: NextAuthOptions = {
             // ❓ USUÁRIO NÃO EXISTE OU PERFIL INCOMPLETO
             console.log('❓ Usuário precisa completar perfil');
             user.needsProfileCompletion = true;
-            user.accessToken = data.data?.token || data.data?.tempToken || account.access_token; // Token temporário do backend
+            user.accessToken = data?.token || data?.tempToken || account.access_token; // Token temporário do backend
             user.refreshToken = undefined;
             user.userType = undefined;
             return true; // Permitir login mas marcar como incompleto
@@ -192,8 +192,8 @@ export const authOptions: NextAuthOptions = {
           if (response.ok) {
             const data = await response.json();
             if (data.success) {
-              token.accessToken = data.data.accessToken;
-              token.refreshToken = data.data.refreshToken;
+              token.accessToken = data.accessToken;
+              token.refreshToken = data.refreshToken;
             }
           }
         } catch (error) {
@@ -210,7 +210,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Enviar propriedades para o cliente
       if (session.user) {
-        session.user.id = token.userId as string;
+        session.user.id = token?.userId || token.id as string;
         session.accessToken = token.accessToken as string;
         session.refreshToken = token.refreshToken as string;
         session.userType = token.userType as string;
