@@ -13,6 +13,7 @@ interface CustomUser {
   accessToken?: string;
   refreshToken?: string;
   needsProfileCompletion?: boolean;
+  image?: string;
 }
 
 // Função para obter a URL da API
@@ -125,11 +126,11 @@ export const authOptions: NextAuthOptions = {
             }),
           });
 
-          console.log(response)
           const data = await response.json();
           console.log('📨 Resposta do backend Google auth:', { 
             status: response.status, 
-            success: data.success 
+            success: data.success,
+            needsCompletion: data.needsProfileCompletion 
           });
 
           if (response.ok && data.success) {
@@ -140,13 +141,14 @@ export const authOptions: NextAuthOptions = {
             user.accessToken = data.token;
             user.refreshToken = data.refreshToken;
             user.needsProfileCompletion = false;
+            user.image = user.image || data.avatar;
             return true;
           } 
-          else if (response.status === 404 || !data.success) {
+          else if (response.status === 404 || !data.success || data.needsProfileCompletion) {
             // ❓ USUÁRIO NÃO EXISTE OU PERFIL INCOMPLETO
             console.log('❓ Usuário precisa completar perfil');
             user.needsProfileCompletion = true;
-            user.accessToken = data?.token || data?.tempToken || account.access_token; // Token temporário do backend
+            user.accessToken = data?.token || data?.tempToken || account.access_token;
             user.refreshToken = undefined;
             user.userType = undefined;
             return true; // Permitir login mas marcar como incompleto
@@ -172,6 +174,7 @@ export const authOptions: NextAuthOptions = {
         token.userType = user.userType;
         token.userId = user.id;
         token.needsProfileCompletion = user.needsProfileCompletion;
+        token.picture = user.image;
       }
 
       // Se o token está expirando, tentar renovar (apenas se não precisa completar perfil)
@@ -211,6 +214,7 @@ export const authOptions: NextAuthOptions = {
       // Enviar propriedades para o cliente
       if (session.user) {
         session.user.id = token?.userId || token.id as string;
+        session.user.image = token.picture as string;
         session.accessToken = token.accessToken as string;
         session.refreshToken = token.refreshToken as string;
         session.userType = token.userType as string;
@@ -220,17 +224,28 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // Verificar se precisa completar perfil baseado na URL
+      console.log('🔄 Redirect callback:', { url, baseUrl });
+
+            // Se o callback inclui parâmetros específicos, processar
       const urlObj = new URL(url.startsWith('/') ? baseUrl + url : url);
+
+            // Verificar se há needsProfileCompletion na URL
+      const needsCompletion = urlObj.searchParams.get('needsProfileCompletion');
+
+      // PROBLEMA PRINCIPAL: Verificar o needsProfileCompletion da sessão
+      // Como não temos acesso direto à sessão aqui, vamos usar uma abordagem diferente
       
-      // Se está tentando acessar complete-profile, permitir
-      if (urlObj.pathname === '/auth/complete-profile') {
-        return url;
+      if (needsCompletion === 'true') {
+        const name = urlObj.searchParams.get('name') || '';
+        const email = urlObj.searchParams.get('email') || '';
+        const image = urlObj.searchParams.get('image') || '';
+        
+        return `${baseUrl}/auth/complete-profile?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&image=${encodeURIComponent(image)}`;
       }
       
-      // Se tem callback e precisa completar perfil, redirecionar
-      if (urlObj.searchParams.get('callbackUrl')?.includes('complete-profile')) {
-        return `${baseUrl}/auth/complete-profile`;
+      // Se não precisa completar perfil, redirecionar para dashboard padrão
+      if (url === baseUrl || url === `${baseUrl}/`) {
+        return `${baseUrl}/dashboard`;
       }
       
       // Redirect padrão
