@@ -1,10 +1,9 @@
-// ARQUIVO: lib/auth.ts - FLUXO CORRIGIDO
+// lib/auth.ts - CORREÇÃO DO REDIRECIONAMENTO
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { JWT } from 'next-auth/jwt';
 
-// Interface para o usuário customizado
 interface CustomUser {
   id: string;
   email: string;
@@ -16,17 +15,13 @@ interface CustomUser {
   image?: string;
 }
 
-// Função para obter a URL da API
 const getApiUrl = () => {
-  // No servidor (SSR), usar a URL interna
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   }
-  // No cliente, usar a URL pública
   return process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
 };
 
-// Configuração do NextAuth
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -46,7 +41,6 @@ export const authOptions: NextAuthOptions = {
           const apiUrl = getApiUrl();
           console.log('🔗 Fazendo login via:', `${apiUrl}/auth/login`);
           
-          // Chamada para a API de login do backend
           const response = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: {
@@ -65,7 +59,6 @@ export const authOptions: NextAuthOptions = {
 
           const data = await response.json();
 
-          // Retorna o usuário se a autenticação for bem-sucedida
           if (data.success && data) {
             return {
               id: data?.userId || data.id,
@@ -110,9 +103,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const apiUrl = getApiUrl();
           console.log('🔄 Tentando autenticar com Google no backend');
-          console.log('🔗 URL da API:', `${apiUrl}/auth/google`);
           
-          // Chamar nossa API para verificar/criar usuário com Google
           const response = await fetch(`${apiUrl}/auth/google`, {
             method: 'POST',
             headers: {
@@ -134,7 +125,6 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (response.ok && data.success) {
-            // ✅ USUÁRIO JÁ EXISTE E ESTÁ COMPLETO
             console.log('✅ Usuário autenticado com sucesso');
             user.id = data?.userId || data.id;
             user.userType = data.tipoUsuario;
@@ -145,13 +135,12 @@ export const authOptions: NextAuthOptions = {
             return true;
           } 
           else if (response.status === 404 || !data.success || data.needsProfileCompletion) {
-            // ❓ USUÁRIO NÃO EXISTE OU PERFIL INCOMPLETO
             console.log('❓ Usuário precisa completar perfil');
             user.needsProfileCompletion = true;
             user.accessToken = data?.token || data?.tempToken || account.access_token;
             user.refreshToken = undefined;
             user.userType = undefined;
-            return true; // Permitir login mas marcar como incompleto
+            return true;
           }
           else {
             console.error('❌ Erro na autenticação Google:', response.status, data.message);
@@ -167,7 +156,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account }: { token: JWT; user?: CustomUser; account?: any }) {
-      // Primeiro login - persistir dados do usuário no token
       if (user) {
         token.accessToken = user.accessToken;
         token.refreshToken = user.refreshToken;
@@ -177,7 +165,6 @@ export const authOptions: NextAuthOptions = {
         token.picture = user.image;
       }
 
-      // Se o token está expirando, tentar renovar (apenas se não precisa completar perfil)
       if (token.refreshToken && token.accessToken && !token.needsProfileCompletion && 
           Date.now() > (token.exp as number) * 1000 - 60000) {
         try {
@@ -201,7 +188,6 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Token refresh error:', error);
-          // Se falhar ao renovar, forçar novo login
           token.accessToken = null;
           token.refreshToken = null;
         }
@@ -211,7 +197,6 @@ export const authOptions: NextAuthOptions = {
     },
     
     async session({ session, token }) {
-      // Enviar propriedades para o cliente
       if (session.user) {
         session.user.id = token?.userId || token.id as string;
         session.user.image = token.picture as string;
@@ -226,14 +211,8 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       console.log('🔄 Redirect callback:', { url, baseUrl });
 
-            // Se o callback inclui parâmetros específicos, processar
       const urlObj = new URL(url.startsWith('/') ? baseUrl + url : url);
-
-            // Verificar se há needsProfileCompletion na URL
       const needsCompletion = urlObj.searchParams.get('needsProfileCompletion');
-
-      // PROBLEMA PRINCIPAL: Verificar o needsProfileCompletion da sessão
-      // Como não temos acesso direto à sessão aqui, vamos usar uma abordagem diferente
       
       if (needsCompletion === 'true') {
         const name = urlObj.searchParams.get('name') || '';
@@ -243,12 +222,13 @@ export const authOptions: NextAuthOptions = {
         return `${baseUrl}/auth/complete-profile?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&image=${encodeURIComponent(image)}`;
       }
       
-      // Se não precisa completar perfil, redirecionar para dashboard padrão
-      if (url === baseUrl || url === `${baseUrl}/`) {
-        return `${baseUrl}/dashboard`;
+      // CORREÇÃO: Em vez de redirecionar para /dashboard genérico,
+      // deixar o useAuth.redirectToDashboard() fazer o trabalho
+      if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/dashboard`) {
+        // Retornar para a home e deixar o useAuth redirecionar corretamente
+        return baseUrl;
       }
       
-      // Redirect padrão
       if (url.startsWith(baseUrl)) {
         return url;
       }
@@ -259,14 +239,13 @@ export const authOptions: NextAuthOptions = {
   
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   
   jwt: {
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   
   secret: process.env.NEXTAUTH_SECRET,
-  
   debug: process.env.NODE_ENV === 'development',
 };

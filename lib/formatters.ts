@@ -1,21 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-
-
-// lib/api.ts - ATUALIZAÇÃO DAS FUNÇÕES DE FORMATAÇÃO
-// Adicionar estas funções ao final do arquivo lib/api.ts existente
-
-// Utility functions - VERSÃO SSR-SAFE
+// lib/formatters.ts - VERSÃO SSR-SAFE
 export const formatCurrency = (value: number): string => {
   // Verificar se estamos no servidor
   if (typeof window === 'undefined') {
@@ -41,10 +24,7 @@ export const formatDate = (date: string | Date): string => {
     try {
       const dateObj = typeof date === 'string' ? new Date(date) : date;
       // Formatação simples no servidor para evitar diferenças de timezone
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const year = dateObj.getFullYear();
-      return `${day}/${month}/${year}`;
+      return dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     } catch (error) {
       return '--/--/----';
     }
@@ -64,12 +44,8 @@ export const formatDateTime = (date: string | Date): string => {
   if (typeof window === 'undefined') {
     try {
       const dateObj = typeof date === 'string' ? new Date(date) : date;
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const year = dateObj.getFullYear();
-      const hours = String(dateObj.getHours()).padStart(2, '0');
-      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-      return `${day}/${month}/${year} ${hours}:${minutes}`;
+      // Formatação simples no servidor
+      return dateObj.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     } catch (error) {
       return '--/--/---- --:--';
     }
@@ -81,5 +57,32 @@ export const formatDateTime = (date: string | Date): string => {
     return dateObj.toLocaleString('pt-BR');
   } catch (error) {
     return '--/--/---- --:--';
+  }
+};
+
+export const formatTime = (date: string | Date): string => {
+  // Verificar se estamos no servidor
+  if (typeof window === 'undefined') {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      return dateObj.toLocaleTimeString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return '--:--';
+    }
+  }
+  
+  // Formatação completa no cliente
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    return '--:--';
   }
 };

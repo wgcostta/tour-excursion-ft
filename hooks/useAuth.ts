@@ -1,6 +1,8 @@
+
+// hooks/useAuth.ts - VERSÃO CORRIGIDA COM REDIRECIONAMENTO AUTOMÁTICO
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export interface AuthUser {
   id: string;
@@ -40,6 +42,36 @@ export const useAuth = (): UseAuthReturn => {
   const isCliente = user?.userType === 'CLIENTE';
   const isOrganizador = user?.userType === 'ORGANIZADOR';
 
+  const redirectToDashboard = useCallback((): void => {
+    if (user) {
+      const dashboardUrl = user.userType === 'ORGANIZADOR' 
+        ? '/organizador/dashboard' 
+        : '/cliente/dashboard';
+      
+      console.log('🎯 Redirecionando para dashboard:', dashboardUrl);
+      router.push(dashboardUrl);
+    } else {
+      console.log('🏠 Usuário não autenticado, redirecionando para home');
+      router.push('/');
+    }
+  }, [router, user]);
+
+  // CORREÇÃO: Adicionar redirecionamento automático quando necessário
+  useEffect(() => {
+    // Se estamos na rota /dashboard genérica e o usuário está autenticado
+    if (router.pathname === '/dashboard' && isAuthenticated && user) {
+      console.log('🔀 Detectado acesso a /dashboard genérico, redirecionando...');
+      redirectToDashboard();
+    }
+    
+    // Se estamos na home e o usuário acabou de fazer login
+    if (router.pathname === '/' && isAuthenticated && user && 
+        router.query.from === 'login') {
+      console.log('🔀 Login detectado, redirecionando para dashboard...');
+      redirectToDashboard();
+    }
+  }, [router.pathname, isAuthenticated, user, redirectToDashboard, router.query.from]);
+
   const login = useCallback(async (
     email: string, 
     password: string, 
@@ -58,6 +90,7 @@ export const useAuth = (): UseAuthReturn => {
         return false;
       }
 
+      console.log('✅ Login bem-sucedido');
       return true;
     } catch (error) {
       console.error('Login exception:', error);
@@ -80,17 +113,6 @@ export const useAuth = (): UseAuthReturn => {
   const redirectToLogin = useCallback((): void => {
     router.push('/auth/login');
   }, [router]);
-
-  const redirectToDashboard = useCallback((): void => {
-    if (user) {
-      const dashboardUrl = user.userType === 'ORGANIZADOR' 
-        ? '/organizador/dashboard' 
-        : '/cliente/dashboard';
-      router.push(dashboardUrl);
-    } else {
-      router.push('/');
-    }
-  }, [router, user]);
 
   return {
     user,
