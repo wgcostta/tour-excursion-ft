@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import Layout from '../../components/Layout';
 import ImageGallery from '../../components/Excursoes/ImageGallery';
 import InscricaoForm from '../../components/Excursoes/InscricaoForm';
+import ComentarioSection from '../../components/Excursoes/ComentarioSection';
 import { 
   MapPin, 
   Calendar, 
@@ -271,6 +272,12 @@ const ExcursaoDetailsPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Perguntas e Comentários */}
+            <div className="card p-6">
+              <h2 className="section-title">Perguntas e Comentários</h2>
+              <ComentarioSection excursaoId={excursao.id} />
+            </div>
           </div>
 
           {/* Sidebar - Booking */}
@@ -309,13 +316,21 @@ const ExcursaoDetailsPage: React.FC = () => {
                     ) : (
                       <div className="space-y-3 mb-4">
                         <button
-                          onClick={() => router.push('/auth/login')}
+                          onClick={() =>
+                            router.push(
+                              `/auth/login?callbackUrl=${encodeURIComponent(router.asPath)}`
+                            )
+                          }
                           className="btn-primary w-full"
                         >
                           Entrar para se Inscrever
                         </button>
                         <button
-                          onClick={() => router.push('/auth/register')}
+                          onClick={() =>
+                            router.push(
+                              `/auth/register?callbackUrl=${encodeURIComponent(router.asPath)}`
+                            )
+                          }
                           className="btn-outline w-full"
                         >
                           Criar Conta

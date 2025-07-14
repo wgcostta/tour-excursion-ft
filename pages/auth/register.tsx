@@ -14,6 +14,7 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { callbackUrl } = router.query;
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterOrganizadorForm>({
     defaultValues: {
@@ -60,9 +61,12 @@ const RegisterPage: React.FC = () => {
         toast.error('Erro no login automático');
         router.push('/auth/login');
       } else {
-        const redirectUrl = data.userType === 'ORGANIZADOR' 
-          ? '/organizador/dashboard' 
-          : '/cliente/dashboard';
+        const redirectUrl =
+          typeof callbackUrl === 'string'
+            ? (callbackUrl as string)
+            : data.userType === 'ORGANIZADOR'
+            ? '/organizador/dashboard'
+            : '/cliente/dashboard';
         router.push(redirectUrl);
       }
     } catch (error: any) {
@@ -76,7 +80,13 @@ const RegisterPage: React.FC = () => {
   };
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/auth/complete-profile' });
+    const cb =
+      typeof callbackUrl === 'string'
+        ? `/auth/complete-profile?callbackUrl=${encodeURIComponent(
+            callbackUrl as string
+          )}`
+        : '/auth/complete-profile';
+    signIn('google', { callbackUrl: cb });
   };
 
   return (
@@ -94,7 +104,14 @@ const RegisterPage: React.FC = () => {
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Ou{' '}
-              <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link
+                href={`/auth/login${
+                  typeof callbackUrl === 'string'
+                    ? `?callbackUrl=${encodeURIComponent(callbackUrl as string)}`
+                    : ''
+                }`}
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
                 entre na sua conta existente
               </Link>
             </p>
