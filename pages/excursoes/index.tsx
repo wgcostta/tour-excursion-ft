@@ -15,7 +15,7 @@ const ExcursoesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    destino: '',
+    localDestino: '',
     precoMin: '',
     precoMax: '',
     dataInicio: '',
@@ -49,7 +49,7 @@ const ExcursoesPage: React.FC = () => {
 
   const filteredExcursoes = excursoes.filter(excursao =>
     excursao.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    excursao.destino.toLowerCase().includes(searchTerm.toLowerCase())
+    excursao.localDestino.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -138,7 +138,7 @@ const ExcursoesPage: React.FC = () => {
               onClick={() => {
                 setSearchTerm('');
                 setFilters({
-                  destino: '',
+                  localDestino: '',
                   precoMin: '',
                   precoMax: '',
                   dataInicio: '',

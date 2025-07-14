@@ -79,8 +79,8 @@ const ClienteDashboard: React.FC = () => {
   const inscricoesConfirmadas = inscricoes.filter(i => i.status === 'CONFIRMADA');
   const inscricoesPendentes = inscricoes.filter(i => i.status === 'PENDENTE');
   const proximasViagens = inscricoesConfirmadas
-    .filter(i => new Date(i.excursao.dataIda) > new Date())
-    .sort((a, b) => new Date(a.excursao.dataIda).getTime() - new Date(b.excursao.dataIda).getTime());
+    .filter(i => new Date(i.excursao.dataSaida) > new Date())
+    .sort((a, b) => new Date(a.excursao.dataSaida).getTime() - new Date(b.excursao.dataSaida).getTime());
 
   return (
     <Layout 
@@ -158,13 +158,18 @@ const ClienteDashboard: React.FC = () => {
                         </h4>
                         <div className="flex items-center text-sm text-gray-600 mb-2">
                           <MapPin className="h-4 w-4 mr-1" />
-                          <span>{inscricao.excursao.destino}</span>
+                          <span>{inscricao.excursao.localDestino}</span>
                         </div>
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="h-4 w-4 mr-1" />
-                          <span>{formatDate(inscricao.excursao.dataIda)}</span>
+                          <span>{formatDate(inscricao.excursao.dataSaida)}</span>
                           <Clock className="h-4 w-4 ml-3 mr-1" />
-                          <span>{inscricao.excursao.horarioSaida}</span>
+                          <span>
+                            {new Date(inscricao.excursao.dataSaida).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         </div>
                       </div>
                       <div className="text-right">

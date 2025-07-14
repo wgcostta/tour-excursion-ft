@@ -181,9 +181,15 @@ const InscricaoForm: React.FC<InscricaoFormProps> = ({ excursao, onClose, onSucc
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">{excursao.titulo}</h3>
                 <div className="text-sm text-gray-600 space-y-1">
-                  <div>Destino: {excursao.destino}</div>
-                  <div>Data: {new Date(excursao.dataIda).toLocaleDateString('pt-BR')}</div>
-                  <div>Horário: {excursao.horarioSaida}</div>
+                  <div>Destino: {excursao.localDestino}</div>
+                  <div>Data: {new Date(excursao.dataSaida).toLocaleDateString('pt-BR')}</div>
+                  <div>
+                    Horário:
+                    {new Date(excursao.dataSaida).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
                   <div>Local de saída: {excursao.localSaida}</div>
                 </div>
               </div>
