@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const { redirectToDashboard } = useAuth();
+  const { callbackUrl } = router.query;
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -39,23 +40,18 @@ const LoginPage: React.FC = () => {
       if (result?.error) {
         toast.error('Credenciais inválidas');
       } else {
-        // Aguardar a sessão ser atualizada
         const session = await getSession();
-        
         toast.success('Login realizado com sucesso!');
-        
-        // CORREÇÃO: Usar o método redirectToDashboard do useAuth
-        if (session?.userType) {
-          const dashboardUrl = session.userType === 'ORGANIZADOR' 
-            ? '/organizador/dashboard' 
+
+        const redirectUrl =
+          typeof callbackUrl === 'string'
+            ? (callbackUrl as string)
+            : session?.userType === 'ORGANIZADOR'
+            ? '/organizador/dashboard'
             : '/cliente/dashboard';
-          
-          console.log('🎯 Redirecionando após login para:', dashboardUrl);
-          router.push(dashboardUrl);
-        } else {
-          // Fallback usando useAuth
-          redirectToDashboard();
-        }
+
+        console.log('🎯 Redirecionando após login para:', redirectUrl);
+        router.push(redirectUrl);
       }
     } catch (error) {
       toast.error('Erro ao fazer login');
@@ -66,7 +62,13 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/auth/complete-profile' });
+    const cb =
+      typeof callbackUrl === 'string'
+        ? `/auth/complete-profile?callbackUrl=${encodeURIComponent(
+            callbackUrl as string
+          )}`
+        : '/auth/complete-profile';
+    signIn('google', { callbackUrl: cb });
   };
 
   return (
@@ -101,7 +103,14 @@ const LoginPage: React.FC = () => {
             
             <p className="mt-2 text-center text-sm text-gray-600">
               Ou{' '}
-              <Link href="/auth/register" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link
+                href={`/auth/register${
+                  typeof callbackUrl === 'string'
+                    ? `?callbackUrl=${encodeURIComponent(callbackUrl as string)}`
+                    : ''
+                }`}
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
                 crie uma nova conta
               </Link>
             </p>

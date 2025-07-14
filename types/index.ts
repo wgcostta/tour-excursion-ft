@@ -54,6 +54,17 @@ export interface Inscricao {
   createdAt: string;
 }
 
+export interface Comentario {
+  id: string;
+  mensagem: string;
+  autor: {
+    id: string;
+    nome: string;
+    avatar?: string;
+  };
+  createdAt: string;
+}
+
 export interface Pagamento {
   id: string;
   valor: number;
