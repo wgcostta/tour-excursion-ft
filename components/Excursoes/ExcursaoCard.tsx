@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { MapPin, Calendar, Users, Clock } from 'lucide-react';
+import { MapPin, Calendar, Users } from 'lucide-react';
 import { Excursao } from '../../types';
 import { formatCurrency, formatDate } from '../../lib/api';
 
@@ -53,17 +53,12 @@ const ExcursaoCard: React.FC<ExcursaoCardProps> = ({ excursao, onClick }) => {
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-gray-600">
             <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-            <span>{excursao.destino}</span>
+            <span>{excursao.localDestino}</span>
           </div>
           
           <div className="flex items-center text-sm text-gray-600">
             <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-            <span>{formatDate(excursao.dataIda)}</span>
-          </div>
-          
-          <div className="flex items-center text-sm text-gray-600">
-            <Clock className="h-4 w-4 mr-2 text-gray-400" />
-            <span>{excursao.horarioSaida}</span>
+            <span>{formatDate(excursao.dataSaida)}</span>
           </div>
           
           <div className="flex items-center text-sm text-gray-600">
@@ -78,11 +73,6 @@ const ExcursaoCard: React.FC<ExcursaoCardProps> = ({ excursao, onClick }) => {
             <span className="text-xl font-bold text-primary-600">
               {formatCurrency(excursao.preco)}
             </span>
-            {excursao.precoMenor && (
-              <div className="text-xs text-gray-500">
-                Criança: {formatCurrency(excursao.precoMenor)}
-              </div>
-            )}
           </div>
           
           <button 

@@ -10,13 +10,11 @@ import toast from 'react-hot-toast';
 interface ExcursaoForm {
   titulo: string;
   descricao: string;
-  destino: string;
-  dataIda: string;
-  dataVolta?: string;
-  horarioSaida: string;
+  localDestino: string;
+  dataSaida: string;
+  dataRetorno?: string;
   localSaida: string;
   preco: number;
-  precoMenor?: number;
   vagasTotal: number;
   imagens: File[];
 }
@@ -28,7 +26,7 @@ const NovaExcursaoPage: React.FC = () => {
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ExcursaoForm>();
 
-  const dataIda = watch('dataIda');
+  const dataSaida = watch('dataSaida');
 
   const onSubmit = async (data: ExcursaoForm) => {
     setIsLoading(true);
@@ -98,12 +96,12 @@ const NovaExcursaoPage: React.FC = () => {
                 type="text"
                 className="form-input"
                 placeholder="Ex: Campos do Jordão, SP"
-                {...register('destino', {
+                {...register('localDestino', {
                   required: 'Destino é obrigatório',
                 })}
               />
-              {errors.destino && (
-                <p className="mt-1 text-sm text-red-600">{errors.destino.message}</p>
+              {errors.localDestino && (
+                <p className="mt-1 text-sm text-red-600">{errors.localDestino.message}</p>
               )}
             </div>
 
@@ -142,54 +140,37 @@ const NovaExcursaoPage: React.FC = () => {
 
         {/* Date and Time */}
         <div className="card p-6">
-          <h3 className="section-title">Datas e Horários</h3>
+          <h3 className="section-title">Datas</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="form-label">
                 <Calendar className="inline h-4 w-4 mr-1" />
-                Data de Ida
+                Data de Saída
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
-                min={new Date().toISOString().split('T')[0]}
-                {...register('dataIda', {
-                  required: 'Data de ida é obrigatória',
+                min={new Date().toISOString().slice(0, 16)}
+                {...register('dataSaida', {
+                  required: 'Data de saída é obrigatória',
                 })}
               />
-              {errors.dataIda && (
-                <p className="mt-1 text-sm text-red-600">{errors.dataIda.message}</p>
+              {errors.dataSaida && (
+                <p className="mt-1 text-sm text-red-600">{errors.dataSaida.message}</p>
               )}
             </div>
 
             <div>
               <label className="form-label">
                 <Calendar className="inline h-4 w-4 mr-1" />
-                Data de Volta (Opcional)
+                Data de Retorno (Opcional)
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
-                min={dataIda}
-                {...register('dataVolta')}
+                min={dataSaida}
+                {...register('dataRetorno')}
               />
-            </div>
-
-            <div>
-              <label className="form-label">
-                <Clock className="inline h-4 w-4 mr-1" />
-                Horário de Saída
-              </label>
-              <input
-                type="time"
-                className="form-input"
-                {...register('horarioSaida', {
-                  required: 'Horário de saída é obrigatório',
-                })}
-              />
-              {errors.horarioSaida && (
-                <p className="mt-1 text-sm text-red-600">{errors.horarioSaida.message}</p>
-              )}
             </div>
           </div>
         </div>
@@ -219,19 +200,6 @@ const NovaExcursaoPage: React.FC = () => {
               )}
             </div>
 
-            <div>
-              <label className="form-label">Preço Criança (Opcional)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="form-input"
-                placeholder="0,00"
-                {...register('precoMenor', {
-                  min: { value: 0, message: 'Preço deve ser maior ou igual a zero' },
-                })}
-              />
-            </div>
 
             <div>
               <label className="form-label">

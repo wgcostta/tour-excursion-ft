@@ -67,7 +67,7 @@ const OrganizadorExcursoesPage: React.FC = () => {
 
   const filteredExcursoes = excursoes.filter(excursao =>
     excursao.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    excursao.destino.toLowerCase().includes(searchTerm.toLowerCase())
+    excursao.localDestino.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadge = (status: string) => {
@@ -242,12 +242,12 @@ const OrganizadorExcursoesPage: React.FC = () => {
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center text-sm text-gray-600">
                         <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{excursao.destino}</span>
+                        <span>{excursao.localDestino}</span>
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{formatDate(excursao.dataIda)}</span>
+                        <span>{formatDate(excursao.dataSaida)}</span>
                       </div>
                     </div>
 

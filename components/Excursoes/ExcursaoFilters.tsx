@@ -2,7 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 
 interface Filters {
-  destino: string;
+  localDestino: string;
   precoMin: string;
   precoMax: string;
   dataInicio: string;
@@ -25,7 +25,7 @@ const ExcursaoFilters: React.FC<ExcursaoFiltersProps> = ({ filters, onFiltersCha
 
   const clearFilters = () => {
     onFiltersChange({
-      destino: '',
+      localDestino: '',
       precoMin: '',
       precoMax: '',
       dataInicio: '',
@@ -58,8 +58,8 @@ const ExcursaoFilters: React.FC<ExcursaoFiltersProps> = ({ filters, onFiltersCha
           <input
             type="text"
             placeholder="Ex: Rio de Janeiro"
-            value={filters.destino}
-            onChange={(e) => handleFilterChange('destino', e.target.value)}
+            value={filters.localDestino}
+            onChange={(e) => handleFilterChange('localDestino', e.target.value)}
             className="form-input"
           />
         </div>
